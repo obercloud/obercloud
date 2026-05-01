@@ -7,7 +7,7 @@
 **Architecture:** Two-binary system. (1) Elixir/Phoenix umbrella with Ash Framework (resources, RBAC, REST API), Oban (reconciler jobs), libcluster + Horde (3-node coordination), LiveView + LiveVue (UI). (2) Rust CLI (`obercloud`) that bootstraps via OpenTofu and admins the running server via REST. PostgreSQL stores both application data and OpenTofu state.
 
 **Tech Stack:**
-- Elixir 1.17 + OTP 27, Phoenix 1.7, Phoenix LiveView 1.0
+- Elixir 1.19 + OTP 28, Phoenix 1.7, Phoenix LiveView 1.0
 - Ash Framework 3.x, AshPostgres 2.x, AshAuthentication 4.x, AshJsonApi 1.x
 - Oban 2.18, libcluster 3.4, Horde 0.9
 - LiveVue 0.5 (Vue 3 components inside LiveView)
@@ -236,11 +236,7 @@ cli/target/
 elixir --version
 ```
 
-Expected: `Elixir 1.17.x` on `Erlang/OTP 27`. If not, install via `mise` or `asdf`:
-
-```bash
-mise use elixir@1.17.3 erlang@27.1
-```
+Expected: `Elixir 1.19.x` on `Erlang/OTP 28`. The `.tool-versions` file at the project root pins these via mise/asdf.
 
 - [ ] **Step 2: Generate the Phoenix umbrella**
 
@@ -320,7 +316,7 @@ def project do
     config_path: "../../config/config.exs",
     deps_path: "../../deps",
     lockfile: "../../mix.lock",
-    elixir: "~> 1.17",
+    elixir: "~> 1.19",
     elixirc_paths: elixirc_paths(Mix.env()),
     start_permanent: Mix.env() == :prod,
     aliases: aliases(),
@@ -3909,7 +3905,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
-        with: { elixir-version: "1.17", otp-version: "27" }
+        with: { elixir-version: "1.19", otp-version: "28" }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: mix deps.get
