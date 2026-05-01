@@ -4,6 +4,14 @@ config :obercloud, :token_signing_secret,
   System.get_env("TOKEN_SIGNING_SECRET") ||
     "dev-only-secret-replace-in-prod-min-32-bytes-long-string!"
 
+credential_encryption_key =
+  case System.get_env("CREDENTIAL_ENCRYPTION_KEY") do
+    nil -> Base.decode64!("ZGV2X2tleV8zMl9ieXRlc19sb25nX2Rldl9rZXkhISE=")
+    val -> Base.decode64!(val)
+  end
+
+config :obercloud, :credential_encryption_key, credential_encryption_key
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
