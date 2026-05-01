@@ -74,7 +74,8 @@ config :obercloud,
     OberCloud.Accounts,
     OberCloud.Auth,
     OberCloud.Projects,
-    OberCloud.ControlPlane
+    OberCloud.ControlPlane,
+    OberCloud.Reconciler
   ]
 
 config :ash, :include_embedded_source_by_default?, false
