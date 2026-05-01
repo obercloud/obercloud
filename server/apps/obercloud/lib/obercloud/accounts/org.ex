@@ -29,6 +29,10 @@ defmodule OberCloud.Accounts.Org do
     update_timestamp :updated_at
   end
 
+  relationships do
+    has_many :memberships, OberCloud.Accounts.Membership
+  end
+
   identities do
     identity :unique_slug, [:slug]
   end
