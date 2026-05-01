@@ -38,8 +38,8 @@ defmodule OberCloud.MixProject do
     [
       {:dns_cluster, "~> 0.2.0"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:ecto_sql, "~> 3.12"},
-      {:postgrex, "~> 0.19"},
+      {:ecto_sql, "~> 3.13"},
+      {:postgrex, "~> 0.20"},
       {:jason, "~> 1.4"},
       {:swoosh, "~> 1.16"},
 

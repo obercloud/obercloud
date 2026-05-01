@@ -10,7 +10,7 @@
 - Elixir 1.19 + OTP 28, Phoenix 1.8, Phoenix LiveView 1.0
 - Ash Framework 3.x, AshPostgres 2.x, AshAuthentication 4.x, AshJsonApi 1.x
 - Oban 2.18, libcluster 3.4, Horde 0.9
-- LiveVue 0.5 (Vue 3 components inside LiveView)
+- LiveVue 0.5+ (Vue 3 components inside LiveView; resolver may pull 0.7.x — verify JS integration in Task 26 against installed version's docs)
 - Rust 1.80 (CLI), clap 4, reqwest 0.12, tokio 1
 - OpenTofu 1.8, Hetzner Cloud Provider 1.48
 - PostgreSQL 16
@@ -274,8 +274,8 @@ Expected: All generated tests pass (`X tests, 0 failures`).
 defp deps do
   [
     {:phoenix_pubsub, "~> 2.1"},
-    {:ecto_sql, "~> 3.12"},
-    {:postgrex, "~> 0.19"},
+    {:ecto_sql, "~> 3.13"},
+    {:postgrex, "~> 0.20"},
     {:jason, "~> 1.4"},
 
     # Ash framework
