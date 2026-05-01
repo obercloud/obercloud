@@ -23,4 +23,55 @@ defmodule OberCloud.AccountsTest do
       assert {:error, _} = Ash.create(Org, %{name: "Acme", slug: "Has Spaces!"})
     end
   end
+
+  describe "users" do
+    test "registers a user with email and password" do
+      {:ok, user} =
+        OberCloud.Accounts.User
+        |> Ash.Changeset.for_create(:register_with_password, %{
+          email: "alice@example.com",
+          name: "Alice",
+          password: "supersecret123",
+          password_confirmation: "supersecret123"
+        })
+        |> Ash.create()
+
+      assert "#{user.email}" == "alice@example.com"
+      refute user.hashed_password == "supersecret123"
+    end
+
+    test "rejects mismatched password confirmation" do
+      assert {:error, _} =
+               OberCloud.Accounts.User
+               |> Ash.Changeset.for_create(:register_with_password, %{
+                 email: "bob@example.com",
+                 name: "Bob",
+                 password: "secret123456",
+                 password_confirmation: "different12345"
+               })
+               |> Ash.create()
+    end
+
+    test "signs in with valid credentials" do
+      {:ok, _} =
+        OberCloud.Accounts.User
+        |> Ash.Changeset.for_create(:register_with_password, %{
+          email: "carol@example.com",
+          name: "Carol",
+          password: "supersecret123",
+          password_confirmation: "supersecret123"
+        })
+        |> Ash.create()
+
+      assert {:ok, [user]} =
+               OberCloud.Accounts.User
+               |> Ash.Query.for_read(:sign_in_with_password, %{
+                 email: "carol@example.com",
+                 password: "supersecret123"
+               })
+               |> Ash.read()
+
+      assert "#{user.email}" == "carol@example.com"
+    end
+  end
 end

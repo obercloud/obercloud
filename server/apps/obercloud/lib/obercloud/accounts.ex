@@ -3,6 +3,8 @@ defmodule OberCloud.Accounts do
 
   resources do
     resource OberCloud.Accounts.Org
+    resource OberCloud.Accounts.User
+    resource OberCloud.Accounts.Token
   end
 
   json_api do

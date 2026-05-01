@@ -1,5 +1,9 @@
 import Config
 
+config :obercloud, :token_signing_secret,
+  System.get_env("TOKEN_SIGNING_SECRET") ||
+    "dev-only-secret-replace-in-prod-min-32-bytes-long-string!"
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
