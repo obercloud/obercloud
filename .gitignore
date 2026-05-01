@@ -1,0 +1,28 @@
+# Elixir
+server/_build/
+server/deps/
+server/cover/
+server/.elixir_ls/
+server/erl_crash.dump
+server/*.ez
+server/*.beam
+server/.fetch
+server/priv/static/assets/
+server/apps/*/priv/static/assets/
+
+# Node
+server/apps/obercloud_web/assets/node_modules/
+server/apps/obercloud_web/assets/dist/
+
+# Rust
+cli/target/
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Local config
+.env
+.env.local
