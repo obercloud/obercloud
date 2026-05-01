@@ -7,7 +7,7 @@
 **Architecture:** Two-binary system. (1) Elixir/Phoenix umbrella with Ash Framework (resources, RBAC, REST API), Oban (reconciler jobs), libcluster + Horde (3-node coordination), LiveView + LiveVue (UI). (2) Rust CLI (`obercloud`) that bootstraps via OpenTofu and admins the running server via REST. PostgreSQL stores both application data and OpenTofu state.
 
 **Tech Stack:**
-- Elixir 1.19 + OTP 28, Phoenix 1.7, Phoenix LiveView 1.0
+- Elixir 1.19 + OTP 28, Phoenix 1.8, Phoenix LiveView 1.0
 - Ash Framework 3.x, AshPostgres 2.x, AshAuthentication 4.x, AshJsonApi 1.x
 - Oban 2.18, libcluster 3.4, Horde 0.9
 - LiveVue 0.5 (Vue 3 components inside LiveView)
