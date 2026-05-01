@@ -38,11 +38,34 @@ defmodule OberCloud.MixProject do
     [
       {:dns_cluster, "~> 0.2.0"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:ecto_sql, "~> 3.13"},
-      {:postgrex, ">= 0.0.0"},
-      {:jason, "~> 1.2"},
+      {:ecto_sql, "~> 3.12"},
+      {:postgrex, "~> 0.19"},
+      {:jason, "~> 1.4"},
       {:swoosh, "~> 1.16"},
-      {:req, "~> 0.5"}
+
+      # Ash framework
+      {:ash, "~> 3.4"},
+      {:ash_postgres, "~> 2.4"},
+      {:ash_authentication, "~> 4.4"},
+      {:ash_authentication_phoenix, "~> 2.4"},
+      {:ash_json_api, "~> 1.4"},
+
+      # Background jobs
+      {:oban, "~> 2.18"},
+
+      # Distributed Erlang
+      {:libcluster, "~> 3.4"},
+      {:horde, "~> 0.9"},
+
+      # HTTP client (for Hetzner API)
+      {:req, "~> 0.5"},
+
+      # Crypto
+      {:bcrypt_elixir, "~> 3.1"},
+
+      # Test
+      {:bypass, "~> 2.1", only: :test},
+      {:mox, "~> 1.2", only: :test}
     ]
   end
 

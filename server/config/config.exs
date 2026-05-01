@@ -68,6 +68,21 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Ash framework domains and defaults
+config :obercloud,
+  ash_domains: [
+    OberCloud.Accounts,
+    OberCloud.Auth,
+    OberCloud.Projects,
+    OberCloud.ControlPlane,
+    OberCloud.Reconciler
+  ]
+
+config :ash, :include_embedded_source_by_default?, false
+config :ash, :default_belongs_to_type, :uuid
+
+config :spark, :formatter, remove_parens?: true
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

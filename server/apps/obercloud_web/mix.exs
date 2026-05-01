@@ -59,7 +59,14 @@ defmodule OberCloudWeb.MixProject do
       {:gettext, "~> 1.0"},
       {:obercloud, in_umbrella: true},
       {:jason, "~> 1.2"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+
+      # Ash web integration
+      {:ash_phoenix, "~> 2.1"},
+      {:ash_authentication_phoenix, "~> 2.4"},
+      {:ash_json_api, "~> 1.4"},
+      {:live_vue, "~> 0.5"},
+      {:floki, ">= 0.30.0", only: :test}
     ]
   end
 
