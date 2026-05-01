@@ -70,7 +70,12 @@ config :phoenix, :json_library, Jason
 
 # Ash framework domains and defaults
 config :obercloud,
-  ash_domains: [OberCloud.Accounts, OberCloud.Projects, OberCloud.ControlPlane]
+  ash_domains: [
+    OberCloud.Accounts,
+    OberCloud.Auth,
+    OberCloud.Projects,
+    OberCloud.ControlPlane
+  ]
 
 config :ash, :include_embedded_source_by_default?, false
 config :ash, :default_belongs_to_type, :uuid
