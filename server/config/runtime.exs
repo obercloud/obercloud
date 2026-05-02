@@ -122,3 +122,8 @@ if config_env() == :prod do
 
   config :obercloud, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 end
+
+# Configure tofu binary for non-test environments
+if config_env() != :test do
+  config :obercloud, :tofu_binary, System.get_env("OBERCLOUD_TOFU_BIN", "tofu")
+end
