@@ -13,7 +13,10 @@ defmodule OberCloudWeb.Plugs.ApiKeyPlug do
       end)
 
       actor = %{type: :api_key, id: key.id, org_id: key.org_id, role: key.role}
-      assign(conn, :current_actor, actor)
+
+      conn
+      |> assign(:current_actor, actor)
+      |> Ash.PlugHelpers.set_actor(actor)
     else
       _ -> unauthorized(conn)
     end

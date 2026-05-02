@@ -49,6 +49,8 @@ defmodule OberCloud.MixProject do
       {:ash_authentication, "~> 4.4"},
       {:ash_authentication_phoenix, "~> 2.4"},
       {:ash_json_api, "~> 1.4"},
+      {:open_api_spex, "~> 3.21"},
+      {:picosat_elixir, "~> 0.2"},
 
       # Background jobs
       {:oban, "~> 2.18"},

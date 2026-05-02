@@ -53,8 +53,12 @@ defmodule OberCloud.Accounts.Org do
   end
 
   policies do
+    # On Org, "actor in this org" is expressed as a filter:
+    # - API key actors carry org_id directly → match by id
+    # - User actors authenticate via Membership → match orgs they belong to
     policy action_type(:read) do
-      authorize_if {OberCloud.Auth.Checks.ActorInOrg, []}
+      authorize_if expr(id == ^actor(:org_id))
+      authorize_if expr(exists(memberships, user_id == ^actor(:id)))
     end
 
     policy action_type(:create) do

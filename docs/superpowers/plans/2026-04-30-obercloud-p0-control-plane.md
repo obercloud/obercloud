@@ -1312,14 +1312,18 @@ Expected: 3 tests pass.
 
 - [ ] **Step 1: Encryption key config**
 
-In `runtime.exs`:
+In `runtime.exs` (the `case` must be in a separate `let`-style assignment because `case ... do ... end` doesn't parse cleanly directly inside `config/3`):
 ```elixir
-config :obercloud, :credential_encryption_key,
+encryption_key =
   case System.get_env("CREDENTIAL_ENCRYPTION_KEY") do
-    nil -> Base.decode64!("ZGV2X2tleV8zMl9ieXRlc19sb25nX2Rldl9rZXkhX2Z2YQ==")
+    nil -> Base.decode64!("ZGV2X2tleV8zMl9ieXRlc19sb25nX2Rldl9rZXkhISE=")
     val -> Base.decode64!(val)
   end
+
+config :obercloud, :credential_encryption_key, encryption_key
 ```
+
+(The dev fallback decodes to a 32-byte string — `"dev_key_32_bytes_long_dev_key!!!"` — required for AES-256-GCM.)
 
 - [ ] **Step 2: Crypto helper**
 

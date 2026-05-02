@@ -11,7 +11,13 @@ defmodule OberCloudWeb.Router do
   end
 
   pipeline :api do
-    plug :accepts, ["json"]
+    plug :accepts, ["json", "json-api"]
+    plug OberCloudWeb.Plugs.ApiKeyPlug
+  end
+
+  scope "/api" do
+    pipe_through :api
+    forward "/", OberCloudWeb.ApiRouter
   end
 
   scope "/", OberCloudWeb do
@@ -19,11 +25,6 @@ defmodule OberCloudWeb.Router do
 
     get "/", PageController, :home
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", OberCloudWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:obercloud_web, :dev_routes) do

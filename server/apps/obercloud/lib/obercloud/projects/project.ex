@@ -56,8 +56,12 @@ defmodule OberCloud.Projects.Project do
   end
 
   policies do
+    # Read uses a filter expression so /api/projects can list rows.
+    # API keys: project.org_id matches actor.org_id.
+    # Users: project belongs to an org they have a membership in.
     policy action_type(:read) do
-      authorize_if {OberCloud.Auth.Checks.ActorInOrg, []}
+      authorize_if expr(org_id == ^actor(:org_id))
+      authorize_if expr(exists(org.memberships, user_id == ^actor(:id)))
     end
 
     policy action_type(:create) do
