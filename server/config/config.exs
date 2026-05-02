@@ -83,6 +83,12 @@ config :ash, :default_belongs_to_type, :uuid
 
 config :spark, :formatter, remove_parens?: true
 
+config :obercloud, Oban,
+  repo: OberCloud.Repo,
+  engine: Oban.Engines.Basic,
+  queues: [reconcile: 5, drift: 2],
+  plugins: []
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

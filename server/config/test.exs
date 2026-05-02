@@ -41,3 +41,5 @@ config :phoenix,
   sort_verified_routes_query_params: true
 
 config :obercloud, :tofu_binary, "/usr/bin/echo"
+
+config :obercloud, Oban, testing: :manual

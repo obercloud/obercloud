@@ -10,7 +10,8 @@ defmodule OberCloud.Application do
     children = [
       OberCloud.Repo,
       {DNSCluster, query: Application.get_env(:obercloud, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: OberCloud.PubSub}
+      {Phoenix.PubSub, name: OberCloud.PubSub},
+      {Oban, Application.fetch_env!(:obercloud, Oban)}
       # Start a worker by calling: OberCloud.Worker.start_link(arg)
       # {OberCloud.Worker, arg}
     ]
