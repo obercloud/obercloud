@@ -3,7 +3,7 @@ defmodule OberCloud.AuthTest do
   alias OberCloud.Auth.ApiKey
 
   setup do
-    {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "Acme", slug: "acme"})
+    {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "Acme", slug: "acme"}, authorize?: false)
     {:ok, org: org}
   end
 

@@ -7,7 +7,7 @@ defmodule OberCloud.AccountsTest do
       assert {:ok, org} =
                Org
                |> Ash.Changeset.for_create(:create, %{name: "Acme Corp", slug: "acme"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert org.name == "Acme Corp"
       assert org.slug == "acme"
@@ -15,12 +15,12 @@ defmodule OberCloud.AccountsTest do
 
     test "rejects duplicate slug" do
       params = %{name: "Acme", slug: "acme"}
-      {:ok, _} = Ash.create(Org, params)
-      assert {:error, _} = Ash.create(Org, params)
+      {:ok, _} = Ash.create(Org, params, authorize?: false)
+      assert {:error, _} = Ash.create(Org, params, authorize?: false)
     end
 
     test "rejects invalid slug format" do
-      assert {:error, _} = Ash.create(Org, %{name: "Acme", slug: "Has Spaces!"})
+      assert {:error, _} = Ash.create(Org, %{name: "Acme", slug: "Has Spaces!"}, authorize?: false)
     end
   end
 
@@ -34,7 +34,7 @@ defmodule OberCloud.AccountsTest do
           password: "supersecret123",
           password_confirmation: "supersecret123"
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert "#{user.email}" == "alice@example.com"
       refute user.hashed_password == "supersecret123"
@@ -49,7 +49,7 @@ defmodule OberCloud.AccountsTest do
                  password: "secret123456",
                  password_confirmation: "different12345"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "signs in with valid credentials" do
@@ -61,7 +61,7 @@ defmodule OberCloud.AccountsTest do
           password: "supersecret123",
           password_confirmation: "supersecret123"
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, [user]} =
                OberCloud.Accounts.User
@@ -77,14 +77,14 @@ defmodule OberCloud.AccountsTest do
 
   describe "memberships" do
     setup do
-      {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "Acme", slug: "acme"})
+      {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "Acme", slug: "acme"}, authorize?: false)
       {:ok, user} =
         OberCloud.Accounts.User
         |> Ash.Changeset.for_create(:register_with_password, %{
           email: "dan@example.com", name: "Dan",
           password: "secret123456", password_confirmation: "secret123456"
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
       {:ok, org: org, user: user}
     end
 
@@ -94,7 +94,7 @@ defmodule OberCloud.AccountsTest do
                |> Ash.Changeset.for_create(:create, %{
                  org_id: org.id, user_id: user.id, role: "org:owner"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
       assert m.role == "org:owner"
     end
 
@@ -104,13 +104,13 @@ defmodule OberCloud.AccountsTest do
                |> Ash.Changeset.for_create(:create, %{
                  org_id: org.id, user_id: user.id, role: "invalid"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects duplicate user/org pair", %{org: org, user: user} do
       p = %{org_id: org.id, user_id: user.id, role: "org:member"}
-      {:ok, _} = Ash.create(OberCloud.Accounts.Membership, p)
-      assert {:error, _} = Ash.create(OberCloud.Accounts.Membership, p)
+      {:ok, _} = Ash.create(OberCloud.Accounts.Membership, p, authorize?: false)
+      assert {:error, _} = Ash.create(OberCloud.Accounts.Membership, p, authorize?: false)
     end
   end
 end

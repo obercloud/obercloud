@@ -3,6 +3,7 @@ defmodule OberCloud.Auth.ApiKey do
     otp_app: :obercloud,
     domain: OberCloud.Auth,
     data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
   require Ash.Query
@@ -68,6 +69,16 @@ defmodule OberCloud.Auth.ApiKey do
     end
   end
 
+  policies do
+    policy action_type(:read) do
+      authorize_if {OberCloud.Auth.Checks.ActorInOrg, []}
+    end
+
+    policy action_type([:create, :update, :destroy]) do
+      authorize_if {OberCloud.Auth.Checks.ActorHasRole, role: "org:admin"}
+    end
+  end
+
   json_api do
     type "api_key"
   end
@@ -83,7 +94,7 @@ defmodule OberCloud.Auth.ApiKey do
 
     case __MODULE__
          |> Ash.Changeset.for_create(:create, attrs)
-         |> Ash.create() do
+         |> Ash.create(authorize?: false) do
       {:ok, key} -> {:ok, %{api_key: key, plaintext: plaintext}}
       err -> err
     end
@@ -97,7 +108,7 @@ defmodule OberCloud.Auth.ApiKey do
         __MODULE__
         |> Ash.Query.new()
         |> Ash.Query.filter(key_prefix == ^prefix and is_nil(revoked_at))
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       case Enum.find(candidates, &Bcrypt.verify_pass(plaintext, &1.key_hash)) do
         nil -> {:error, :invalid_key}
@@ -109,7 +120,7 @@ defmodule OberCloud.Auth.ApiKey do
   end
 
   def revoke(key) do
-    key |> Ash.Changeset.for_update(:revoke) |> Ash.update()
+    key |> Ash.Changeset.for_update(:revoke) |> Ash.update(authorize?: false)
   end
 
   defp generate_plaintext do

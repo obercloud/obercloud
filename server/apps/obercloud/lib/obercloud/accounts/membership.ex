@@ -2,7 +2,8 @@ defmodule OberCloud.Accounts.Membership do
   use Ash.Resource,
     otp_app: :obercloud,
     domain: OberCloud.Accounts,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
 
   postgres do
     table "memberships"
@@ -36,6 +37,16 @@ defmodule OberCloud.Accounts.Membership do
 
   validations do
     validate attribute_in(:role, ~w(system:owner org:owner org:admin org:member org:viewer))
+  end
+
+  policies do
+    policy action_type(:read) do
+      authorize_if {OberCloud.Auth.Checks.ActorInOrg, []}
+    end
+
+    policy action_type([:create, :update, :destroy]) do
+      authorize_if {OberCloud.Auth.Checks.ActorHasRole, role: "org:admin"}
+    end
   end
 
   actions do

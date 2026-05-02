@@ -33,7 +33,7 @@ defmodule OberCloud.Auth.Checks.ActorHasRole do
   defp user_role_satisfies?(uid, oid, required) do
     case OberCloud.Accounts.Membership
          |> Ash.Query.filter(user_id == ^uid and org_id == ^oid)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, %{role: role}} -> role_satisfies?(role, required)
       _ -> false
     end

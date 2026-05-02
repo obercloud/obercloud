@@ -3,7 +3,7 @@ defmodule OberCloud.ControlPlaneTest do
   alias OberCloud.ControlPlane.{Node, ProviderCredential}
 
   setup do
-    {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "Acme", slug: "acme"})
+    {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "Acme", slug: "acme"}, authorize?: false)
     {:ok, org: org}
   end
 
@@ -17,7 +17,7 @@ defmodule OberCloud.ControlPlaneTest do
                  status: "provisioning",
                  provider_metadata: %{"region" => "nbg1", "server_type" => "cx21"}
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert node.status == "provisioning"
       assert node.provider == "hetzner"
@@ -31,7 +31,7 @@ defmodule OberCloud.ControlPlaneTest do
                  role: "primary",
                  status: "provisioning"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects invalid status" do
@@ -42,7 +42,7 @@ defmodule OberCloud.ControlPlaneTest do
                  role: "primary",
                  status: "wat"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -55,9 +55,9 @@ defmodule OberCloud.ControlPlaneTest do
                  provider: "hetzner",
                  plaintext_credentials: %{"api_token" => "test-token-12345"}
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
-      reloaded = Ash.get!(ProviderCredential, cred.id)
+      reloaded = Ash.get!(ProviderCredential, cred.id, authorize?: false)
       assert {:ok, %{"api_token" => "test-token-12345"}} =
                ProviderCredential.decrypted_credentials(reloaded)
       refute reloaded.credentials_enc =~ "test-token-12345"

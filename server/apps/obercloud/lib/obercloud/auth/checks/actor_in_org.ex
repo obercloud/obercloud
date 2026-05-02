@@ -19,7 +19,7 @@ defmodule OberCloud.Auth.Checks.ActorInOrg do
        when not is_nil(uid) and not is_nil(oid) do
     case OberCloud.Accounts.Membership
          |> Ash.Query.filter(user_id == ^uid and org_id == ^oid)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> false
       {:ok, _} -> true
       _ -> false

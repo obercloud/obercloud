@@ -3,6 +3,7 @@ defmodule OberCloud.Projects.Project do
     otp_app: :obercloud,
     domain: OberCloud.Projects,
     data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
   postgres do
@@ -51,6 +52,20 @@ defmodule OberCloud.Projects.Project do
     update :update do
       accept [:name]
       primary? true
+    end
+  end
+
+  policies do
+    policy action_type(:read) do
+      authorize_if {OberCloud.Auth.Checks.ActorInOrg, []}
+    end
+
+    policy action_type(:create) do
+      authorize_if {OberCloud.Auth.Checks.ActorHasRole, role: "org:admin"}
+    end
+
+    policy action_type([:update, :destroy]) do
+      authorize_if {OberCloud.Auth.Checks.ActorHasRole, role: "org:admin"}
     end
   end
 

@@ -3,6 +3,7 @@ defmodule OberCloud.ControlPlane.Node do
     otp_app: :obercloud,
     domain: OberCloud.ControlPlane,
     data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
   postgres do
@@ -50,6 +51,16 @@ defmodule OberCloud.ControlPlane.Node do
       accept [:ip_address, :provider_resource_id]
       change set_attribute(:status, "ready")
       change set_attribute(:joined_at, &DateTime.utc_now/0)
+    end
+  end
+
+  policies do
+    policy action_type(:read) do
+      authorize_if actor_present()
+    end
+
+    policy action_type([:create, :update, :destroy]) do
+      authorize_if {OberCloud.Auth.Checks.ActorHasRole, role: "system:owner"}
     end
   end
 
