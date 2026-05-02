@@ -87,7 +87,9 @@ config :obercloud, Oban,
   repo: OberCloud.Repo,
   engine: Oban.Engines.Basic,
   queues: [reconcile: 5, drift: 2],
-  plugins: []
+  plugins: [
+    {Oban.Plugins.Cron, crontab: [{"*/5 * * * *", OberCloud.Reconciler.DriftDetector}]}
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
