@@ -1,0 +1,19 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - postgresql-16
+  - postgresql-contrib
+
+write_files:
+  - path: /etc/obercloud/env
+    content: |
+      DATABASE_URL=postgres://obercloud:${db_password}@localhost/obercloud
+      SECRET_KEY_BASE=${secret_key_base}
+      CREDENTIAL_ENCRYPTION_KEY=${encryption_key}
+    permissions: '0600'
+
+runcmd:
+  - sudo -u postgres psql -c "CREATE USER obercloud WITH PASSWORD '${db_password}';"
+  - sudo -u postgres psql -c "CREATE DATABASE obercloud OWNER obercloud;"
+  - docker run -d --name obercloud --restart unless-stopped --network host --env-file /etc/obercloud/env ghcr.io/obercloud/obercloud:latest

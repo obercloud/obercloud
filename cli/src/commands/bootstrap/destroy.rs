@@ -1,9 +1,14 @@
+use super::tofu;
+use crate::{config::Config, output, Result};
 use clap::Args as ClapArgs;
-use crate::Result;
 
 #[derive(ClapArgs)]
 pub struct Args {}
 
 pub async fn run(_args: Args) -> Result<()> {
-    todo!("implemented in Task 31")
+    let cfg_dir = Config::path().parent().unwrap().join("default");
+    output::info("running tofu destroy");
+    tofu::run(&cfg_dir, &["destroy", "-auto-approve", "-no-color"])?;
+    output::success("control plane destroyed");
+    Ok(())
 }
