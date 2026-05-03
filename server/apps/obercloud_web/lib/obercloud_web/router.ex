@@ -33,6 +33,10 @@ defmodule OberCloudWeb.Router do
     ash_authentication_live_session :authenticated,
       on_mount: [{OberCloudWeb.LiveUserAuth, :live_user_required}] do
       live "/", DashboardLive
+      live "/orgs", OrgsLive
+      live "/projects", ProjectsLive
+      live "/nodes", NodesLive
+      live "/api_keys", ApiKeysLive
     end
   end
 
