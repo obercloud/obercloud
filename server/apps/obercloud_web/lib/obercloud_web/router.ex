@@ -30,7 +30,7 @@ defmodule OberCloudWeb.Router do
     # sign_in_route brings its own live_session — cannot be nested
     sign_in_route(register_path: "/register")
 
-    live_session :authenticated,
+    ash_authentication_live_session :authenticated,
       on_mount: [{OberCloudWeb.LiveUserAuth, :live_user_required}] do
       live "/", DashboardLive
     end
