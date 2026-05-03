@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  elixir:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: obercloud_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.19"
+          otp-version: "28"
+      - run: mix deps.get
+        working-directory: server
+      - run: mix compile --warnings-as-errors
+        working-directory: server
+        env:
+          MIX_ENV: test
+      - run: mix ecto.create && mix ecto.migrate
+        working-directory: server
+        env:
+          MIX_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost/obercloud_test
+      - run: mix test
+        working-directory: server
+        env:
+          MIX_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost/obercloud_test
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --check
+        working-directory: cli
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: cli
+      - run: cargo test
+        working-directory: cli
+      - run: cargo build --release
+        working-directory: cli

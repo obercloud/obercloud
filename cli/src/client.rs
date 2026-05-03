@@ -37,11 +37,7 @@ impl Client {
         Self::parse(r).await
     }
 
-    pub async fn post<B: Serialize, T: DeserializeOwned>(
-        &self,
-        path: &str,
-        body: &B,
-    ) -> Result<T> {
+    pub async fn post<B: Serialize, T: DeserializeOwned>(&self, path: &str, body: &B) -> Result<T> {
         let r = self
             .http
             .post(format!("{}{}", self.base_url, path))

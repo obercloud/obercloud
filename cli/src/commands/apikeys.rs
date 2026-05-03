@@ -32,11 +32,7 @@ pub async fn run(cmd: ApikeysCommand) -> Result<()> {
                 );
             }
         }
-        ApikeysCommand::Create {
-            name,
-            org_id,
-            role,
-        } => {
+        ApikeysCommand::Create { name, org_id, role } => {
             let body = json!({
                 "data": {
                     "type": "api_key",

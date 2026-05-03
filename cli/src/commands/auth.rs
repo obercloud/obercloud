@@ -43,8 +43,7 @@ pub async fn run(cmd: AuthCommand) -> Result<()> {
 
             // unauthenticated POST — use a client with empty key
             let client = Client::new_for_test(&url, "");
-            let resp: serde_json::Value =
-                client.post("/auth/user/password/sign_in", &body).await?;
+            let resp: serde_json::Value = client.post("/auth/user/password/sign_in", &body).await?;
             let token = resp["data"]["attributes"]["token"]
                 .as_str()
                 .ok_or_else(|| CliError::Validation("no token in response".into()))?;
