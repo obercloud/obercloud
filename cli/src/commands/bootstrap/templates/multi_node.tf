@@ -6,16 +6,25 @@ terraform {
 }
 
 variable "hetzner_token" {}
-variable "region"       { default = "nbg1" }
-variable "server_type"  { default = "cx21" }
-variable "ssh_pubkey"   {}
+variable "region" { default = "nbg1" }
+variable "server_type" { default = "cx21" }
+variable "ssh_pubkey" {}
 variable "cluster_name" { default = "obercloud" }
 
 provider "hcloud" { token = var.hetzner_token }
 
-resource "random_password" "db_password"     { length = 32 ; special = false }
-resource "random_password" "secret_key_base" { length = 64 ; special = false }
-resource "random_password" "encryption_key"  { length = 32 ; special = false }
+resource "random_password" "db_password" {
+  length  = 32
+  special = false
+}
+resource "random_password" "secret_key_base" {
+  length  = 64
+  special = false
+}
+resource "random_password" "encryption_key" {
+  length  = 32
+  special = false
+}
 
 resource "hcloud_ssh_key" "boot" {
   name       = "${var.cluster_name}-boot"
@@ -66,10 +75,10 @@ resource "hcloud_server" "control_plane" {
 }
 
 resource "hcloud_server_network" "control_plane" {
-  count      = 3
-  server_id  = hcloud_server.control_plane[count.index].id
-  subnet_id  = hcloud_network_subnet.control_plane.id
-  ip         = "10.42.1.${10 + count.index}"
+  count     = 3
+  server_id = hcloud_server.control_plane[count.index].id
+  subnet_id = hcloud_network_subnet.control_plane.id
+  ip        = "10.42.1.${10 + count.index}"
 }
 
 output "url" {
@@ -81,5 +90,8 @@ output "all_ips" {
 output "private_ips" {
   value = [for n in hcloud_server_network.control_plane : n.ip]
 }
-output "admin_email"    { value = "admin@obercloud.local" }
-output "admin_password" { value = random_password.db_password.result ; sensitive = true }
+output "admin_email" { value = "admin@obercloud.local" }
+output "admin_password" {
+  value     = random_password.db_password.result
+  sensitive = true
+}

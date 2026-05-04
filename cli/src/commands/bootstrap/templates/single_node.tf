@@ -6,16 +6,25 @@ terraform {
 }
 
 variable "hetzner_token" {}
-variable "region"       { default = "nbg1" }
-variable "server_type"  { default = "cx21" }
-variable "ssh_pubkey"   {}
+variable "region" { default = "nbg1" }
+variable "server_type" { default = "cx21" }
+variable "ssh_pubkey" {}
 variable "cluster_name" { default = "obercloud" }
 
 provider "hcloud" { token = var.hetzner_token }
 
-resource "random_password" "db_password"     { length = 32 ; special = false }
-resource "random_password" "secret_key_base" { length = 64 ; special = false }
-resource "random_password" "encryption_key"  { length = 32 ; special = false }
+resource "random_password" "db_password" {
+  length  = 32
+  special = false
+}
+resource "random_password" "secret_key_base" {
+  length  = 64
+  special = false
+}
+resource "random_password" "encryption_key" {
+  length  = 32
+  special = false
+}
 
 resource "hcloud_ssh_key" "boot" {
   name       = "${var.cluster_name}-boot"
@@ -44,7 +53,10 @@ resource "hcloud_server" "control_plane" {
   })
 }
 
-output "url"            { value = "http://${hcloud_server.control_plane.ipv4_address}" }
-output "ip"             { value = hcloud_server.control_plane.ipv4_address }
-output "admin_email"    { value = "admin@obercloud.local" }
-output "admin_password" { value = random_password.db_password.result ; sensitive = true }
+output "url" { value = "http://${hcloud_server.control_plane.ipv4_address}" }
+output "ip" { value = hcloud_server.control_plane.ipv4_address }
+output "admin_email" { value = "admin@obercloud.local" }
+output "admin_password" {
+  value     = random_password.db_password.result
+  sensitive = true
+}

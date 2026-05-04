@@ -1,21 +1,30 @@
 terraform {
   required_providers {
-    vultr  = { source = "vultr/vultr",   version = "~> 2.21" }
+    vultr  = { source = "vultr/vultr", version = "~> 2.21" }
     random = { source = "hashicorp/random", version = "~> 3.6" }
   }
 }
 
-variable "vultr_token"   {}
-variable "region"        { default = "ewr" }
-variable "server_type"   { default = "vc2-2c-4gb" }
-variable "ssh_pubkey"    {}
-variable "cluster_name"  { default = "obercloud" }
+variable "vultr_token" {}
+variable "region" { default = "ewr" }
+variable "server_type" { default = "vc2-2c-4gb" }
+variable "ssh_pubkey" {}
+variable "cluster_name" { default = "obercloud" }
 
 provider "vultr" { api_key = var.vultr_token }
 
-resource "random_password" "db_password"     { length = 32 ; special = false }
-resource "random_password" "secret_key_base" { length = 64 ; special = false }
-resource "random_password" "encryption_key"  { length = 32 ; special = false }
+resource "random_password" "db_password" {
+  length  = 32
+  special = false
+}
+resource "random_password" "secret_key_base" {
+  length  = 64
+  special = false
+}
+resource "random_password" "encryption_key" {
+  length  = 32
+  special = false
+}
 
 data "vultr_os" "ubuntu" {
   filter {
@@ -95,7 +104,10 @@ output "url" {
 }
 output "all_ips" {
   value = concat([vultr_instance.primary.main_ip],
-                 [for s in vultr_instance.standby : s.main_ip])
+  [for s in vultr_instance.standby : s.main_ip])
 }
-output "admin_email"    { value = "admin@obercloud.local" }
-output "admin_password" { value = random_password.db_password.result ; sensitive = true }
+output "admin_email" { value = "admin@obercloud.local" }
+output "admin_password" {
+  value     = random_password.db_password.result
+  sensitive = true
+}
