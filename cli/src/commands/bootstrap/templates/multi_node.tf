@@ -57,7 +57,7 @@ resource "hcloud_server" "control_plane" {
     db_password     = random_password.db_password.result
     secret_key_base = random_password.secret_key_base.result
     encryption_key  = random_password.encryption_key.result
-    hetzner_token   = var.hetzner_token
+    provider_token  = var.hetzner_token
     cluster_name    = var.cluster_name
     # Standbys point at node 0 over the private network for PG streaming
     # replication. Node 0 sees itself as the primary.

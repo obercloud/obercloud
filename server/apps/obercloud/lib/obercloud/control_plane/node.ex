@@ -27,7 +27,7 @@ defmodule OberCloud.ControlPlane.Node do
   end
 
   validations do
-    validate attribute_in(:provider, ~w(hetzner digitalocean))
+    validate attribute_in(:provider, ~w(hetzner digitalocean vultr))
     validate attribute_in(:role, ~w(primary standby worker))
     validate attribute_in(:status, ~w(provisioning ready degraded decommissioned))
   end

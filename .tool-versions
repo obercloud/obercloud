@@ -1,3 +1,4 @@
-elixir 1.19.2-otp-28
-erlang 28.1.1
-just   latest
+elixir   1.19.2-otp-28
+erlang   28.1.1
+just     latest
+opentofu latest

@@ -3,29 +3,90 @@ use crate::{
     config::{Config, Context},
     output, CliError, Result,
 };
-use clap::Args as ClapArgs;
-use dialoguer::{Password, Select};
+use clap::{Args as ClapArgs, ValueEnum};
+use dialoguer::Password;
 use std::fs;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum Provider {
+    Vultr,
+    Hetzner,
+}
+
+impl Provider {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Provider::Vultr => "vultr",
+            Provider::Hetzner => "hetzner",
+        }
+    }
+
+    fn token_var_name(&self) -> &'static str {
+        match self {
+            Provider::Vultr => "vultr_token",
+            Provider::Hetzner => "hetzner_token",
+        }
+    }
+
+    fn token_prompt(&self) -> &'static str {
+        match self {
+            Provider::Vultr => "Vultr API key",
+            Provider::Hetzner => "Hetzner API token",
+        }
+    }
+
+    fn default_region(&self) -> &'static str {
+        match self {
+            Provider::Vultr => "ewr",
+            Provider::Hetzner => "nbg1",
+        }
+    }
+
+    fn default_server_type(&self) -> &'static str {
+        match self {
+            Provider::Vultr => "vc2-2c-4gb",
+            Provider::Hetzner => "cx21",
+        }
+    }
+
+    fn single_node_template(&self) -> &'static str {
+        match self {
+            Provider::Vultr => include_str!("templates/vultr_single_node.tf"),
+            Provider::Hetzner => include_str!("templates/single_node.tf"),
+        }
+    }
+
+    fn multi_node_template(&self) -> &'static str {
+        match self {
+            Provider::Vultr => include_str!("templates/vultr_multi_node.tf"),
+            Provider::Hetzner => include_str!("templates/multi_node.tf"),
+        }
+    }
+}
 
 #[derive(ClapArgs)]
 pub struct Args {
-    /// Hetzner Cloud API token (project-scoped, read+write).
-    /// Prompted interactively if not provided.
+    /// Cloud provider to bootstrap on. Defaults to vultr.
+    #[arg(long, value_enum, default_value_t = Provider::Vultr)]
+    pub provider: Provider,
+
+    /// Provider API token. Prompted interactively if not provided.
     #[arg(long)]
     pub token: Option<String>,
 
-    /// Hetzner region (e.g. nbg1, fsn1, hel1).
-    #[arg(long, default_value = "nbg1")]
-    pub region: String,
+    /// Provider region. Vultr default: ewr (New Jersey).
+    /// Hetzner default: nbg1 (Nuremberg).
+    #[arg(long)]
+    pub region: Option<String>,
 
     /// Number of control plane nodes (1 = indie dev, 3 = HA).
     #[arg(long, default_value_t = 1)]
     pub nodes: u8,
 
-    /// Hetzner server type for each node (e.g. cx21, cx31, cpx21).
-    /// cx21 = 2 vCPU, 4 GB RAM (~€5/month).
-    #[arg(long, default_value = "cx21")]
-    pub server_type: String,
+    /// Provider instance type. Vultr default: vc2-2c-4gb.
+    /// Hetzner default: cx21.
+    #[arg(long)]
+    pub server_type: Option<String>,
 
     /// Logical name for this control plane installation. Used as the
     /// VM hostname prefix and as the CLI context name.
@@ -34,26 +95,29 @@ pub struct Args {
 }
 
 pub async fn run(args: Args) -> Result<()> {
+    let region = args
+        .region
+        .unwrap_or_else(|| args.provider.default_region().to_string());
+    let server_type = args
+        .server_type
+        .unwrap_or_else(|| args.provider.default_server_type().to_string());
+
     output::info(&format!(
-        "OberCloud bootstrap (Hetzner): {} {}-node cluster in {} on {}",
-        args.name, args.nodes, args.region, args.server_type
+        "OberCloud bootstrap ({}): {} {}-node cluster in {} on {}",
+        args.provider.as_str(),
+        args.name,
+        args.nodes,
+        region,
+        server_type
     ));
 
     let token = match args.token {
         Some(t) => t,
         None => Password::new()
-            .with_prompt("Hetzner API token")
+            .with_prompt(args.provider.token_prompt())
             .interact()
             .map_err(|e| CliError::Validation(e.to_string()))?,
     };
-
-    // Provider picker (Hetzner only in P0)
-    Select::new()
-        .with_prompt("Provider")
-        .items(&["Hetzner"])
-        .default(0)
-        .interact()
-        .ok();
 
     let nodes = args.nodes;
     if nodes != 1 && nodes != 3 {
@@ -61,9 +125,9 @@ pub async fn run(args: Args) -> Result<()> {
     }
 
     let template = if nodes == 1 {
-        include_str!("templates/single_node.tf")
+        args.provider.single_node_template()
     } else {
-        include_str!("templates/multi_node.tf")
+        args.provider.multi_node_template()
     };
     let cloud_init = include_str!("templates/cloud_init.yaml");
 
@@ -75,14 +139,15 @@ pub async fn run(args: Args) -> Result<()> {
     fs::write(
         workdir.path().join("terraform.tfvars"),
         format!(
-            "hetzner_token = \"{}\"\n\
+            "{} = \"{}\"\n\
              region = \"{}\"\n\
              server_type = \"{}\"\n\
              ssh_pubkey = \"{}\"\n\
              cluster_name = \"{}\"\n",
+            args.provider.token_var_name(),
             token,
-            args.region,
-            args.server_type,
+            region,
+            server_type,
             ssh_pubkey.trim(),
             args.name,
         ),
@@ -118,8 +183,6 @@ pub async fn run(args: Args) -> Result<()> {
     cfg.active_context = Some(args.name.clone());
     cfg.save()?;
 
-    // Persist tfvars + state to a per-cluster directory so destroy/upgrade
-    // can find them later. Each cluster name gets its own subdirectory.
     let cfg_dir = Config::path().parent().unwrap().join(&args.name);
     fs::create_dir_all(&cfg_dir)?;
     fs::write(cfg_dir.join("main.tf"), template)?;

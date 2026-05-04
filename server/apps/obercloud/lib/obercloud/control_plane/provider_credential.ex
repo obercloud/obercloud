@@ -27,7 +27,7 @@ defmodule OberCloud.ControlPlane.ProviderCredential do
   end
 
   validations do
-    validate attribute_in(:provider, ~w(hetzner digitalocean))
+    validate attribute_in(:provider, ~w(hetzner digitalocean vultr))
   end
 
   actions do

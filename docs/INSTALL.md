@@ -3,7 +3,7 @@
 This guide covers two scenarios:
 
 - **[Local development](#1-local-development)** — running OberCloud on your laptop to try it out, contribute, or evaluate the codebase.
-- **[Production bootstrap](#2-production-bootstrap-on-hetzner)** — provisioning a real OberCloud installation on Hetzner via the `obercloud` CLI. *(Pre-alpha — see the [Production caveats](#production-caveats) section before you try this.)*
+- **[Production bootstrap](#2-production-bootstrap-vultr-or-hetzner)** — provisioning a real OberCloud installation on Vultr or Hetzner via the `obercloud` CLI. *(Pre-alpha — see the [Production caveats](#production-caveats) section before you try this.)*
 
 If you're just kicking the tires, do [Local development](#1-local-development) first.
 
@@ -18,7 +18,7 @@ If you're just kicking the tires, do [Local development](#1-local-development) f
    - [Build the CLI](#build-the-cli)
    - [Smoke test: sign up, create an org, hit the API](#smoke-test-sign-up-create-an-org-hit-the-api)
    - [Running the test suites](#running-the-test-suites)
-2. [Production bootstrap on Hetzner](#2-production-bootstrap-on-hetzner)
+2. [Production bootstrap (Vultr or Hetzner)](#2-production-bootstrap-vultr-or-hetzner)
 3. [Configuration reference](#configuration-reference)
 4. [Troubleshooting](#troubleshooting)
 
@@ -122,7 +122,7 @@ obercloud projects list / create <name> <slug> <org-id> / delete <id>
 obercloud nodes list
 obercloud apikeys list / create <name> <org-id> [role] / revoke <id>
 
-obercloud init                         # bootstrap a real Hetzner installation
+obercloud init                         # bootstrap a real installation (vultr default)
 obercloud destroy                      # tear it down
 obercloud upgrade                      # upgrade an existing installation
 ```
@@ -228,12 +228,12 @@ Both should be green on a fresh clone.
 
 ---
 
-## 2. Production bootstrap on Hetzner
+## 2. Production bootstrap (Vultr or Hetzner)
 
 ### Production caveats
 
 ⚠️ **Pre-alpha.** The `obercloud init` flow is implemented and will:
-- Provision Hetzner VM(s) via OpenTofu
+- Provision VM(s) on Vultr or Hetzner via OpenTofu
 - Install PostgreSQL + Podman via cloud-init
 - Start the OberCloud container from `ghcr.io/obercloud/obercloud:latest`
 
@@ -243,7 +243,7 @@ The official `ghcr.io/obercloud/obercloud:latest` image is published by the **`.
 
 - **The `obercloud` CLI runs on your local machine.** It does not run on the control plane VMs. It's the tool you use to drive everything else.
 - **OpenTofu must be installed locally.** The CLI shells out to `tofu` (the binary needs to be on `PATH`). [Install instructions](https://opentofu.org/docs/intro/install/).
-- **OpenTofu state is stored on your local machine** at `~/.config/obercloud/<cluster-name>/terraform.tfstate`, alongside `main.tf`, `cloud_init.yaml`, and `terraform.tfvars`. `terraform.tfvars` contains your Hetzner token in plaintext, so:
+- **OpenTofu state is stored on your local machine** at `~/.config/obercloud/<cluster-name>/terraform.tfstate`, alongside `main.tf`, `cloud_init.yaml`, and `terraform.tfvars`. `terraform.tfvars` contains your provider token in plaintext, so:
   - The directory is created with default permissions — `chmod 700 ~/.config/obercloud` to lock it down.
   - **Back this directory up before tearing down a cluster.** Lose it, and you lose the ability to `obercloud destroy` or `obercloud upgrade` cleanly.
   - A future release will move state into the running OberCloud DB so the CLI doesn't need it locally.
@@ -253,52 +253,69 @@ The official `ghcr.io/obercloud/obercloud:latest` image is published by the **`.
 - The `obercloud` binary on `PATH`
 - The `tofu` binary on `PATH`
 - An SSH keypair at `~/.ssh/id_ed25519` (or `~/.ssh/id_rsa`) — its public key gets installed on the VMs
-- A [Hetzner Cloud project token](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/) with read+write scope
+- A provider API token:
+  - **Vultr** (default) — generate at <https://my.vultr.com/settings/#settingsapi>. Requires "subscription" + "billing read" scopes.
+  - **Hetzner** — a [Hetzner Cloud project token](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/) with read+write scope.
 
 ### Run it
 
+Vultr (default — `--provider vultr` is implicit):
+
 ```bash
-# Interactive — prompts for the Hetzner token, accepts other flags as defaults:
+# Interactive — prompts for the Vultr API key, accepts other flags as defaults:
 obercloud init
 
 # Non-interactive:
 obercloud init \
-  --token hcloud_xxx \
-  --region nbg1 \
+  --token YOUR_VULTR_API_KEY \
+  --region ewr \
   --nodes 1 \
+  --server-type vc2-2c-4gb \
+  --name acme-prod
+```
+
+Hetzner:
+
+```bash
+obercloud init \
+  --provider hetzner \
+  --token YOUR_HETZNER_TOKEN \
+  --region nbg1 \
   --server-type cx21 \
   --name acme-prod
 ```
 
-| Flag | Default | Notes |
-|---|---|---|
-| `--token` | *(prompt)* | Hetzner Cloud project token |
-| `--region` | `nbg1` | Hetzner location (`nbg1`, `fsn1`, `hel1`, etc.) |
-| `--nodes` | `1` | `1` = indie dev, `3` = HA. No other values supported. |
-| `--server-type` | `cx21` | Hetzner instance type. `cx21` = 2 vCPU / 4 GB RAM (~€5/mo). For production try `cpx21` or larger. |
-| `--name` | `obercloud` | Logical name for the cluster. Used as the VM hostname prefix, the CLI context name, and the directory name under `~/.config/obercloud/`. Pick something descriptive (`acme-prod`, `staging`, `client-x`). |
+| Flag | Default (vultr) | Default (hetzner) | Notes |
+|---|---|---|---|
+| `--provider` | `vultr` | — | `vultr` or `hetzner` |
+| `--token` | *(prompt)* | *(prompt)* | Provider API token / key |
+| `--region` | `ewr` (New Jersey) | `nbg1` (Nuremberg) | Provider region code. Vultr: `ewr` / `lhr` / `fra` / `nrt` etc. Hetzner: `nbg1` / `fsn1` / `hel1` etc. |
+| `--nodes` | `1` | `1` | `1` = indie dev, `3` = HA. No other values supported. |
+| `--server-type` | `vc2-2c-4gb` | `cx21` | Vultr: 2 vCPU / 4 GB / $24mo. Hetzner: 2 vCPU / 4 GB / ~€5mo. |
+| `--name` | `obercloud` | `obercloud` | Logical name for the cluster. Used as the VM hostname prefix, the CLI context name, and the directory name under `~/.config/obercloud/`. Pick something descriptive (`acme-prod`, `staging`, `client-x`). |
 
 ### What happens during `init`
 
-1. CLI renders an HCL config in a temp dir (`single_node.tf` or `multi_node.tf`).
-2. Runs `tofu init` then `tofu apply` against your Hetzner project.
-3. Hetzner provisions the VM(s):
-   - **Single-node:** one server with the role label `control-plane`.
-   - **Multi-node:** three servers + a private Hetzner network (`10.42.0.0/16`) so PG replication, libcluster, and Horde traffic stays internal. Each node also gets a public IP.
-4. Cloud-init on each VM installs `podman`, `postgresql-16`, and runs the OberCloud container (`ghcr.io/.../obercloud:latest`) with `--restart unless-stopped` so it survives reboots.
+1. CLI renders an HCL config in a temp dir (the right `*_single_node.tf` / `*_multi_node.tf` for your chosen provider).
+2. Runs `tofu init` then `tofu apply` against your provider account.
+3. The provider provisions the VM(s):
+   - **Single-node:** one VM tagged `obercloud`, `control-plane`, `<cluster-name>`.
+   - **Multi-node (Vultr):** three VMs + a Vultr VPC2 (`10.42.1.0/24`); the primary is provisioned first, standbys reference its public IP via cloud-init for PG streaming replication. (Vultr's vpc2 doesn't expose deterministic per-instance private IPs at create time the way Hetzner does — replication is still TLS-encrypted by Postgres, just routes via public network for P0.)
+   - **Multi-node (Hetzner):** three servers + a Hetzner private network (`10.42.0.0/16`) with deterministic per-node private IPs so PG replication, libcluster, and Horde traffic all stay internal.
+4. Cloud-init on each VM installs `podman`, `postgresql-16`, and runs the OberCloud container (`ghcr.io/obercloud/obercloud:latest`) with `--restart unless-stopped` so it survives reboots.
 5. CLI polls `http://<primary-ip>/health` until the control plane responds.
 6. CLI registers the new server as the `<cluster-name>` context in `~/.config/obercloud/config.toml` and makes it active.
 7. Prints the URL and admin password.
 
-### How does the control plane authenticate against Hetzner for future provisioning?
+### How does the control plane authenticate against the provider for future provisioning?
 
-Cloud-init writes the Hetzner token to `/etc/obercloud/env` on the VM as `OBERCLOUD_BOOTSTRAP_HETZNER_TOKEN`. **This is a bootstrap-only credential** that lets the control plane do a first reconcile against Hetzner before an admin POSTs a long-lived credential.
+Cloud-init writes the provider token to `/etc/obercloud/env` on the VM as `OBERCLOUD_BOOTSTRAP_PROVIDER_TOKEN`. **This is a bootstrap-only credential** that lets the control plane do a first reconcile against the provider before an admin POSTs a long-lived credential.
 
 The intended operational flow is:
 
 1. After `obercloud init` finishes, log in as the `system:owner`.
-2. POST to `/api/provider_credentials` with the Hetzner token (the API encrypts it at rest with AES-256-GCM using `CREDENTIAL_ENCRYPTION_KEY`).
-3. Remove `OBERCLOUD_BOOTSTRAP_HETZNER_TOKEN` from `/etc/obercloud/env` and rebuild the container.
+2. POST to `/api/provider_credentials` with the provider token (the API encrypts it at rest with AES-256-GCM using `CREDENTIAL_ENCRYPTION_KEY`). Specify `provider: "vultr"` or `provider: "hetzner"` per credential.
+3. Remove `OBERCLOUD_BOOTSTRAP_PROVIDER_TOKEN` from `/etc/obercloud/env` and rebuild the container.
 
 The bootstrap-token UX is rough in P0 — automating step 2 is on the P1 list.
 
