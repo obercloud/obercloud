@@ -21,8 +21,8 @@ setup: deps db-setup
 # Fetch deps for both server and CLI
 deps: mix-deps cargo-fetch
 
-# Run all tests (Elixir + Rust)
-test: mix-test cargo-test
+# Run all tests (Elixir + Rust + Vue)
+test: mix-test cargo-test vue-test
 
 # Compile / build everything
 build: mix-compile cargo-build
@@ -34,7 +34,7 @@ format: mix-format cargo-fmt
 clean: mix-clean cargo-clean
 
 # Everything CI runs: deps, db, tests, lint, build
-ci: deps db-setup mix-test cargo-test cargo-clippy mix-compile
+ci: deps db-setup mix-test cargo-test cargo-clippy mix-compile vue-test vue-typecheck
 
 # ─────────────────────────────────────────────────────────────────────
 # Server (Elixir / Phoenix umbrella)
@@ -130,3 +130,23 @@ cargo-clean:
 # Run the obercloud CLI with arguments. Example: `just cli orgs list`
 cli *args:
     cd cli && cargo run --quiet -- {{args}}
+
+# ─────────────────────────────────────────────────────────────────────
+# Web assets (Vue components + Vitest)
+# ─────────────────────────────────────────────────────────────────────
+
+# Install npm deps for the web assets (Vitest + Vue + test libs)
+vue-deps:
+    cd server/apps/obercloud_web/assets && npm install
+
+# Run the Vue component test suite (Vitest)
+vue-test:
+    cd server/apps/obercloud_web/assets && npm test
+
+# Run Vue component tests in watch mode
+vue-test-watch:
+    cd server/apps/obercloud_web/assets && npm run test:watch
+
+# Type-check the TypeScript + .vue files
+vue-typecheck:
+    cd server/apps/obercloud_web/assets && npm run typecheck

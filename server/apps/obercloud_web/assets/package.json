@@ -1,0 +1,22 @@
+{
+  "name": "obercloud_web_assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue components + Vitest unit tests for the OberCloud web UI. Phoenix's mix-driven esbuild+tailwind handles production bundling; this package.json exists only to host the Vitest test runner and the Vue dev/test toolchain.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^15.11.7",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
