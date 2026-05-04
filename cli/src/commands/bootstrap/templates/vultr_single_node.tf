@@ -26,15 +26,6 @@ resource "random_password" "encryption_key" {
   special = false
 }
 
-# Look up the Ubuntu 22.04 x64 OS id at apply time so we don't hard-code
-# the magic number (1743 today, may change).
-data "vultr_os" "ubuntu" {
-  filter {
-    name   = "name"
-    values = ["Ubuntu 22.04 x64"]
-  }
-}
-
 resource "vultr_ssh_key" "boot" {
   name    = "${var.cluster_name}-boot"
   ssh_key = var.ssh_pubkey
@@ -45,19 +36,23 @@ resource "vultr_instance" "control_plane" {
   hostname    = var.cluster_name
   plan        = var.server_type
   region      = var.region
-  os_id       = data.vultr_os.ubuntu.id
+  os_id       = 1743 # Ubuntu 22.04 x64
   ssh_key_ids = [vultr_ssh_key.boot.id]
   enable_ipv6 = false
   tags        = ["obercloud", "control-plane", var.cluster_name]
 
-  user_data = base64encode(templatefile("${path.module}/cloud_init.yaml", {
+  # NOTE: Vultr's Terraform provider base64-encodes user_data itself before
+  # sending it to the API, so we pass plain cloud-config here. Wrapping in
+  # base64encode() doubles the encoding and cloud-init silently skips the
+  # whole block ("Unhandled non-multipart text/x-not-multipart").
+  user_data = templatefile("${path.module}/cloud_init.yaml", {
     db_password     = random_password.db_password.result
     secret_key_base = random_password.secret_key_base.result
     encryption_key  = random_password.encryption_key.result
     provider_token  = var.vultr_token
     cluster_name    = var.cluster_name
     primary_host    = "127.0.0.1"
-  }))
+  })
 }
 
 output "url" { value = "http://${vultr_instance.control_plane.main_ip}" }

@@ -17,6 +17,13 @@ defmodule OberCloudWeb.Router do
     plug OberCloudWeb.Plugs.ApiKeyPlug
   end
 
+  # Plain unauthenticated health check. Used by `obercloud init`'s
+  # wait_for_health poller and by external load balancers / uptime
+  # monitors. No pipeline — no session fetch, no CSRF, no auth.
+  scope "/", OberCloudWeb do
+    get "/health", HealthController, :index
+  end
+
   scope "/api" do
     pipe_through :api
     forward "/", OberCloudWeb.ApiRouter

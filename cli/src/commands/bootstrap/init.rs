@@ -159,6 +159,9 @@ pub async fn run(args: Args) -> Result<()> {
         ),
     )?;
 
+    output::info("validating provider token");
+    validate_token(args.provider, &token).await?;
+
     output::info("running tofu init");
     tofu::run(workdir.path(), &["init", "-no-color"])?;
 
@@ -267,4 +270,47 @@ async fn wait_for_health(url: &str) -> Result<()> {
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
     }
     Err(CliError::Tofu("control plane never became healthy".into()))
+}
+
+async fn validate_token(provider: Provider, token: &str) -> Result<()> {
+    let (url, header_name, header_value) = match provider {
+        Provider::Vultr => (
+            "https://api.vultr.com/v2/account",
+            "authorization",
+            format!("Bearer {}", token),
+        ),
+        Provider::Hetzner => (
+            "https://api.hetzner.cloud/v1/locations",
+            "authorization",
+            format!("Bearer {}", token),
+        ),
+    };
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(url)
+        .header(header_name, header_value)
+        .send()
+        .await
+        .map_err(|e| {
+            CliError::Validation(format!(
+                "could not reach the {} API ({}): {}",
+                provider.as_str(),
+                url,
+                e
+            ))
+        })?;
+
+    if resp.status().is_success() {
+        Ok(())
+    } else {
+        let status = resp.status().as_u16();
+        let body = resp.text().await.unwrap_or_default();
+        Err(CliError::Validation(format!(
+            "{} rejected the API token (HTTP {}). Verify the token has not expired and has the right scopes.\nResponse: {}",
+            provider.as_str(),
+            status,
+            body.chars().take(200).collect::<String>()
+        )))
+    }
 }

@@ -26,13 +26,6 @@ resource "random_password" "encryption_key" {
   special = false
 }
 
-data "vultr_os" "ubuntu" {
-  filter {
-    name   = "name"
-    values = ["Ubuntu 22.04 x64"]
-  }
-}
-
 resource "vultr_ssh_key" "boot" {
   name    = "${var.cluster_name}-boot"
   ssh_key = var.ssh_pubkey
@@ -59,20 +52,22 @@ resource "vultr_instance" "primary" {
   hostname    = "${var.cluster_name}-1"
   plan        = var.server_type
   region      = var.region
-  os_id       = data.vultr_os.ubuntu.id
+  os_id       = 1743 # Ubuntu 22.04 x64
   ssh_key_ids = [vultr_ssh_key.boot.id]
   vpc2_ids    = [vultr_vpc2.control_plane.id]
   enable_ipv6 = false
   tags        = ["obercloud", "control-plane", var.cluster_name, "role:primary"]
 
-  user_data = base64encode(templatefile("${path.module}/cloud_init.yaml", {
+  # NOTE: Vultr's Terraform provider base64-encodes user_data itself.
+  # Don't double-encode (see vultr_single_node.tf for details).
+  user_data = templatefile("${path.module}/cloud_init.yaml", {
     db_password     = random_password.db_password.result
     secret_key_base = random_password.secret_key_base.result
     encryption_key  = random_password.encryption_key.result
     provider_token  = var.vultr_token
     cluster_name    = var.cluster_name
     primary_host    = "127.0.0.1"
-  }))
+  })
 }
 
 # Standbys (PG hot standbys, role:standby). Reference the primary's IP
@@ -83,20 +78,20 @@ resource "vultr_instance" "standby" {
   hostname    = "${var.cluster_name}-${count.index + 2}"
   plan        = var.server_type
   region      = var.region
-  os_id       = data.vultr_os.ubuntu.id
+  os_id       = 1743 # Ubuntu 22.04 x64
   ssh_key_ids = [vultr_ssh_key.boot.id]
   vpc2_ids    = [vultr_vpc2.control_plane.id]
   enable_ipv6 = false
   tags        = ["obercloud", "control-plane", var.cluster_name, "role:standby"]
 
-  user_data = base64encode(templatefile("${path.module}/cloud_init.yaml", {
+  user_data = templatefile("${path.module}/cloud_init.yaml", {
     db_password     = random_password.db_password.result
     secret_key_base = random_password.secret_key_base.result
     encryption_key  = random_password.encryption_key.result
     provider_token  = var.vultr_token
     cluster_name    = var.cluster_name
     primary_host    = vultr_instance.primary.main_ip
-  }))
+  })
 }
 
 output "url" {

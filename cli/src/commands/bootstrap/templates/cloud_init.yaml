@@ -1,36 +1,63 @@
 #cloud-config
+# OberCloud control plane bootstrap.
+#
+# Note for maintainers: $${terraform_var} entries in this file are interpolated
+# by Terraform's templatefile() at apply time. Bare $var references (no braces)
+# are interpolated by the shell at boot time and survive the templating step.
 package_update: true
 packages:
   - podman
   - postgresql-16
   - postgresql-contrib
-
-write_files:
-  - path: /etc/obercloud/env
-    permissions: '0600'
-    content: |
-      DATABASE_URL=postgres://obercloud:${db_password}@${primary_host}/obercloud
-      SECRET_KEY_BASE=${secret_key_base}
-      CREDENTIAL_ENCRYPTION_KEY=${encryption_key}
-      # The provider token is encrypted at rest by ProviderCredential once
-      # the control plane stores it; this env var only seeds the bootstrap
-      # so the first reconcile against the provider works before an admin
-      # POSTs a credential. Rotate / remove via /api/provider_credentials.
-      OBERCLOUD_BOOTSTRAP_PROVIDER_TOKEN=${provider_token}
-      OBERCLOUD_CLUSTER_NAME=${cluster_name}
-      PHX_HOST=$(curl -s ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+  - curl
 
 runcmd:
-  # Create the database (only on the primary; standbys skip this and let
-  # PostgreSQL streaming replication handle it).
+  # Wait for the apt-installed Postgres to actually be accepting connections.
+  # On a fresh Ubuntu 22.04 image this is usually a couple of seconds, but
+  # cloud-init runs runcmd before systemd has finished bringing services up.
+  - |
+    for _ in $(seq 1 60); do
+      if sudo -u postgres pg_isready -q; then break; fi
+      sleep 1
+    done
+
+  # Create the OberCloud database + role on the primary node only. Standbys
+  # get the data via streaming replication (P0 doesn't actually wire that
+  # up yet — it's a single-DB setup until P1+).
   - |
     if [ "${primary_host}" = "127.0.0.1" ]; then
       sudo -u postgres psql -c "CREATE USER obercloud WITH PASSWORD '${db_password}';"
       sudo -u postgres psql -c "CREATE DATABASE obercloud OWNER obercloud;"
     fi
-  # Run the OberCloud control plane container under Podman as a systemd
-  # service so it auto-restarts on reboot. Image tag is replaced at upgrade
-  # time by re-running 'obercloud upgrade'.
+
+  # Compute the VM's public IPv4 at boot. Doing this in write_files: doesn't
+  # work — write_files only does literal expansion, so $(curl ...) would
+  # land in the file verbatim. Doing it here means PHX_HOST reflects what
+  # the box actually answers on.
+  - |
+    PUBLIC_IP=$(curl -fsS --max-time 5 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+    mkdir -p /etc/obercloud
+    cat > /etc/obercloud/env <<EOF
+    DATABASE_URL=postgres://obercloud:${db_password}@${primary_host}/obercloud
+    SECRET_KEY_BASE=${secret_key_base}
+    CREDENTIAL_ENCRYPTION_KEY=${encryption_key}
+    OBERCLOUD_BOOTSTRAP_PROVIDER_TOKEN=${provider_token}
+    OBERCLOUD_CLUSTER_NAME=${cluster_name}
+    PHX_HOST=$PUBLIC_IP
+    PHX_SERVER=true
+    PORT=4000
+    EOF
+    chmod 600 /etc/obercloud/env
+
+  # Pull the image first so any auth/registry failure surfaces in the
+  # cloud-init log instead of getting buried under a podman run error.
+  # If the package is private on ghcr.io/obercloud/obercloud, this will
+  # fail with HTTP 401 — make the package public, or add a podman login
+  # step before this runcmd entry.
+  - podman pull ghcr.io/obercloud/obercloud:latest
+
+  # Boot the control plane. --network host so the container can talk to
+  # postgres on 127.0.0.1 and bind 0.0.0.0:4000 directly.
   - |
     podman run -d \
       --name obercloud \
