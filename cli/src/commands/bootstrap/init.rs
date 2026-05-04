@@ -9,16 +9,35 @@ use std::fs;
 
 #[derive(ClapArgs)]
 pub struct Args {
+    /// Hetzner Cloud API token (project-scoped, read+write).
+    /// Prompted interactively if not provided.
     #[arg(long)]
     pub token: Option<String>,
+
+    /// Hetzner region (e.g. nbg1, fsn1, hel1).
     #[arg(long, default_value = "nbg1")]
     pub region: String,
+
+    /// Number of control plane nodes (1 = indie dev, 3 = HA).
     #[arg(long, default_value_t = 1)]
     pub nodes: u8,
+
+    /// Hetzner server type for each node (e.g. cx21, cx31, cpx21).
+    /// cx21 = 2 vCPU, 4 GB RAM (~€5/month).
+    #[arg(long, default_value = "cx21")]
+    pub server_type: String,
+
+    /// Logical name for this control plane installation. Used as the
+    /// VM hostname prefix and as the CLI context name.
+    #[arg(long, default_value = "obercloud")]
+    pub name: String,
 }
 
 pub async fn run(args: Args) -> Result<()> {
-    output::info("OberCloud bootstrap (Hetzner)");
+    output::info(&format!(
+        "OberCloud bootstrap (Hetzner): {} {}-node cluster in {} on {}",
+        args.name, args.nodes, args.region, args.server_type
+    ));
 
     let token = match args.token {
         Some(t) => t,
@@ -56,10 +75,16 @@ pub async fn run(args: Args) -> Result<()> {
     fs::write(
         workdir.path().join("terraform.tfvars"),
         format!(
-            "hetzner_token = \"{}\"\nregion = \"{}\"\nssh_pubkey = \"{}\"\n",
+            "hetzner_token = \"{}\"\n\
+             region = \"{}\"\n\
+             server_type = \"{}\"\n\
+             ssh_pubkey = \"{}\"\n\
+             cluster_name = \"{}\"\n",
             token,
             args.region,
-            ssh_pubkey.trim()
+            args.server_type,
+            ssh_pubkey.trim(),
+            args.name,
         ),
     )?;
 
@@ -84,17 +109,18 @@ pub async fn run(args: Args) -> Result<()> {
 
     let mut cfg = Config::load()?;
     cfg.contexts.insert(
-        "default".into(),
+        args.name.clone(),
         Context {
             url: url.clone(),
             api_key: None,
         },
     );
-    cfg.active_context = Some("default".into());
+    cfg.active_context = Some(args.name.clone());
     cfg.save()?;
 
-    // Persist tfvars + state for destroy/upgrade later
-    let cfg_dir = Config::path().parent().unwrap().join("default");
+    // Persist tfvars + state to a per-cluster directory so destroy/upgrade
+    // can find them later. Each cluster name gets its own subdirectory.
+    let cfg_dir = Config::path().parent().unwrap().join(&args.name);
     fs::create_dir_all(&cfg_dir)?;
     fs::write(cfg_dir.join("main.tf"), template)?;
     fs::write(cfg_dir.join("cloud_init.yaml"), cloud_init)?;
@@ -107,8 +133,12 @@ pub async fn run(args: Args) -> Result<()> {
         fs::copy(&tfstate, cfg_dir.join("terraform.tfstate"))?;
     }
 
-    output::success(&format!("OberCloud is running at {}", url));
+    output::success(&format!("OberCloud '{}' is running at {}", args.name, url));
     output::success(&format!("admin password: {}", admin_password));
+    output::info(&format!(
+        "OpenTofu state lives at {} — back this up before tearing down",
+        cfg_dir.display()
+    ));
     output::info("run `obercloud auth login` to sign in");
     Ok(())
 }

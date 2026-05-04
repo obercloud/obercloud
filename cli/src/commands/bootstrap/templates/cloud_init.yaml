@@ -1,19 +1,40 @@
 #cloud-config
 package_update: true
 packages:
-  - docker.io
+  - podman
   - postgresql-16
   - postgresql-contrib
 
 write_files:
   - path: /etc/obercloud/env
+    permissions: '0600'
     content: |
-      DATABASE_URL=postgres://obercloud:${db_password}@localhost/obercloud
+      DATABASE_URL=postgres://obercloud:${db_password}@${primary_host}/obercloud
       SECRET_KEY_BASE=${secret_key_base}
       CREDENTIAL_ENCRYPTION_KEY=${encryption_key}
-    permissions: '0600'
+      # The Hetzner token is encrypted at rest by ProviderCredential once
+      # the control plane stores it; this env var only seeds the bootstrap
+      # so the first reconcile against Hetzner works before an admin POSTs
+      # a credential. Rotate / remove via /api/provider_credentials.
+      OBERCLOUD_BOOTSTRAP_HETZNER_TOKEN=${hetzner_token}
+      OBERCLOUD_CLUSTER_NAME=${cluster_name}
+      PHX_HOST=$(curl -s ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 
 runcmd:
-  - sudo -u postgres psql -c "CREATE USER obercloud WITH PASSWORD '${db_password}';"
-  - sudo -u postgres psql -c "CREATE DATABASE obercloud OWNER obercloud;"
-  - docker run -d --name obercloud --restart unless-stopped --network host --env-file /etc/obercloud/env ghcr.io/obercloud/obercloud:latest
+  # Create the database (only on the primary; standbys skip this and let
+  # PostgreSQL streaming replication handle it).
+  - |
+    if [ "${primary_host}" = "127.0.0.1" ]; then
+      sudo -u postgres psql -c "CREATE USER obercloud WITH PASSWORD '${db_password}';"
+      sudo -u postgres psql -c "CREATE DATABASE obercloud OWNER obercloud;"
+    fi
+  # Run the OberCloud control plane container under Podman as a systemd
+  # service so it auto-restarts on reboot. Image tag is replaced at upgrade
+  # time by re-running 'obercloud upgrade'.
+  - |
+    podman run -d \
+      --name obercloud \
+      --network host \
+      --env-file /etc/obercloud/env \
+      --restart unless-stopped \
+      ghcr.io/obercloud/obercloud:latest

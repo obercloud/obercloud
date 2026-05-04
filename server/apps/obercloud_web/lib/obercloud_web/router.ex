@@ -25,10 +25,13 @@ defmodule OberCloudWeb.Router do
   scope "/", OberCloudWeb do
     pipe_through :browser
 
-    auth_routes_for OberCloud.Accounts.User, to: AuthController
+    auth_routes OberCloudWeb.AuthController, OberCloud.Accounts.User, path: "/auth"
     sign_out_route AuthController
-    # sign_in_route brings its own live_session — cannot be nested
-    sign_in_route(register_path: "/register")
+    # sign_in_route brings its own live_session — cannot be nested.
+    # auth_routes_prefix MUST match the path passed to auth_routes/3 above,
+    # otherwise the rendered sign-in form has no POST target and the page
+    # appears blank.
+    sign_in_route(register_path: "/register", auth_routes_prefix: "/auth")
 
     ash_authentication_live_session :authenticated,
       on_mount: [{OberCloudWeb.LiveUserAuth, :live_user_required}] do

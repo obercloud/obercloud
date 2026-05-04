@@ -114,27 +114,70 @@ obercloud upgrade                      # upgrade an existing installation
 
 Config is persisted at **`~/.config/obercloud/config.toml`**.
 
-### Smoke test: sign up, create an org, hit the API
+### Smoke test: bootstrap an admin, then drive it via the CLI
 
-1. **Register a user** — open <http://localhost:4000/register> in your browser, sign up with an email and password.
+The web UI lets you sign up via <http://localhost:4000/register>, but in P0 the LiveView pages are read-only. So the fastest way to exercise the system end-to-end is a one-shot bootstrap script that creates a user, an org, a membership, and an API key — then use the CLI for everything from there.
 
-2. **Create an organization via the web UI.** *(P0 caveat: the LiveView pages are read-only — see "What works" in the project README. For now, create the org via SQL or via the iex shell:)*
+1. **Run the bootstrap.** Save the snippet below to `bootstrap.exs` at the project root:
 
-   ```bash
-   ./run_mix_in_server -- run -e '
-   {:ok, org} = Ash.create(OberCloud.Accounts.Org, %{name: "My Org", slug: "my-org"}, authorize?: false)
-   {:ok, [user]} = Ash.read(OberCloud.Accounts.User, authorize?: false)
-   {:ok, _} = Ash.create(OberCloud.Accounts.Membership, %{
-     user_id: user.id, org_id: org.id, role: "org:owner"
-   }, authorize?: false)
-   {:ok, %{plaintext: pt}} = OberCloud.Auth.ApiKey.create_with_plaintext(%{
-     name: "local-dev", org_id: org.id, role: "org:admin"
-   })
-   IO.puts("\\nAPI KEY (save this): #{pt}\\n")
-   '
+   ```elixir
+   # bootstrap.exs
+   {:ok, user} =
+     OberCloud.Accounts.User
+     |> Ash.Changeset.for_create(:register_with_password, %{
+       email: "admin@local",
+       name: "Admin",
+       password: "changeme1234",
+       password_confirmation: "changeme1234"
+     })
+     |> Ash.create(authorize?: false)
+
+   {:ok, org} =
+     Ash.create(
+       OberCloud.Accounts.Org,
+       %{name: "My Org", slug: "my-org"},
+       authorize?: false
+     )
+
+   {:ok, _membership} =
+     Ash.create(
+       OberCloud.Accounts.Membership,
+       %{user_id: user.id, org_id: org.id, role: "org:owner"},
+       authorize?: false
+     )
+
+   {:ok, %{plaintext: pt}} =
+     OberCloud.Auth.ApiKey.create_with_plaintext(%{
+       name: "local-dev",
+       org_id: org.id,
+       role: "org:admin"
+     })
+
+   IO.puts("""
+
+   ============================================
+     User:    admin@local / changeme1234
+     Org id:  #{org.id}
+     API key: #{pt}
+   ============================================
+   You will not see the API key again — copy it now.
+   """)
    ```
 
-   Copy the `obk_...` API key it prints. **You will not be able to see it again.**
+   Run it:
+
+   ```bash
+   ./run_mix_in_server run bootstrap.exs
+   ```
+
+   Copy the `obk_...` API key it prints. **You will not be able to see it again** (only its bcrypt hash is stored).
+
+   Re-running the script will fail on the user/org creation because of the unique-email and unique-slug constraints. To start over:
+
+   ```bash
+   ./run_mix_in_server ecto.reset    # drops + recreates + migrates the dev DB
+   ./run_mix_in_server run bootstrap.exs
+   ```
 
 3. **Use it from the CLI:**
 
@@ -175,44 +218,85 @@ Both should be green on a fresh clone.
 
 ⚠️ **Pre-alpha.** The `obercloud init` flow is implemented and will:
 - Provision Hetzner VM(s) via OpenTofu
-- Install PostgreSQL + Docker via cloud-init
-- Try to start the OberCloud container from `ghcr.io/obercloud/obercloud:latest`
+- Install PostgreSQL + Podman via cloud-init
+- Start the OberCloud container from `ghcr.io/<owner>/obercloud:latest`
 
-**However**, the container image at `ghcr.io/obercloud/obercloud:latest` **does not exist yet** — publishing the official OberCloud release container is on the P1 roadmap. Until then, `obercloud init` is useful for testing the bootstrap mechanics on Hetzner but the resulting VMs won't run a working control plane.
+The official `ghcr.io/obercloud/obercloud:latest` image is published by the **`.github/workflows/release.yml`** workflow on every push to `main`. If you've forked the repo and the image hasn't been built in your fork yet, `obercloud init` will provision VMs but the cloud-init container pull will fail. Push to `main` (or run the workflow manually) before bootstrapping.
 
-For now, use [Local development](#1-local-development) to actually exercise OberCloud.
+### Where does what run, and where does state live?
 
-### Bootstrap flow (when the image is published)
+- **The `obercloud` CLI runs on your local machine.** It does not run on the control plane VMs. It's the tool you use to drive everything else.
+- **OpenTofu must be installed locally.** The CLI shells out to `tofu` (the binary needs to be on `PATH`). [Install instructions](https://opentofu.org/docs/intro/install/).
+- **OpenTofu state is stored on your local machine** at `~/.config/obercloud/<cluster-name>/terraform.tfstate`, alongside `main.tf`, `cloud_init.yaml`, and `terraform.tfvars`. `terraform.tfvars` contains your Hetzner token in plaintext, so:
+  - The directory is created with default permissions — `chmod 700 ~/.config/obercloud` to lock it down.
+  - **Back this directory up before tearing down a cluster.** Lose it, and you lose the ability to `obercloud destroy` or `obercloud upgrade` cleanly.
+  - A future release will move state into the running OberCloud DB so the CLI doesn't need it locally.
 
-Prerequisites on your local machine:
+### Prerequisites on your local machine
+
 - The `obercloud` binary on `PATH`
-- The `tofu` binary on `PATH` ([install OpenTofu](https://opentofu.org/docs/intro/install/))
+- The `tofu` binary on `PATH`
 - An SSH keypair at `~/.ssh/id_ed25519` (or `~/.ssh/id_rsa`) — its public key gets installed on the VMs
 - A [Hetzner Cloud project token](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/) with read+write scope
 
-Run:
+### Run it
 
 ```bash
-obercloud init                 # interactive: prompts for token, region, node count
-# or non-interactively:
-obercloud init --token hcloud_xxx --region nbg1 --nodes 1
+# Interactive — prompts for the Hetzner token, accepts other flags as defaults:
+obercloud init
+
+# Non-interactive:
+obercloud init \
+  --token hcloud_xxx \
+  --region nbg1 \
+  --nodes 1 \
+  --server-type cx21 \
+  --name acme-prod
 ```
 
-What happens:
-1. CLI generates an HCL config in a temp dir (single-node or 3-node depending on `--nodes`)
-2. Runs `tofu init` and `tofu apply` against your Hetzner project
-3. Cloud-init on each VM installs Docker + PostgreSQL and starts the OberCloud container
-4. CLI polls `http://<ip>/health` until the control plane is up
-5. CLI saves the new server as the `default` context in `~/.config/obercloud/config.toml`
-6. Prints the URL and admin password
+| Flag | Default | Notes |
+|---|---|---|
+| `--token` | *(prompt)* | Hetzner Cloud project token |
+| `--region` | `nbg1` | Hetzner location (`nbg1`, `fsn1`, `hel1`, etc.) |
+| `--nodes` | `1` | `1` = indie dev, `3` = HA. No other values supported. |
+| `--server-type` | `cx21` | Hetzner instance type. `cx21` = 2 vCPU / 4 GB RAM (~€5/mo). For production try `cpx21` or larger. |
+| `--name` | `obercloud` | Logical name for the cluster. Used as the VM hostname prefix, the CLI context name, and the directory name under `~/.config/obercloud/`. Pick something descriptive (`acme-prod`, `staging`, `client-x`). |
 
-After bootstrap, use the CLI as you would against a local server.
+### What happens during `init`
 
-To tear it down:
+1. CLI renders an HCL config in a temp dir (`single_node.tf` or `multi_node.tf`).
+2. Runs `tofu init` then `tofu apply` against your Hetzner project.
+3. Hetzner provisions the VM(s):
+   - **Single-node:** one server with the role label `control-plane`.
+   - **Multi-node:** three servers + a private Hetzner network (`10.42.0.0/16`) so PG replication, libcluster, and Horde traffic stays internal. Each node also gets a public IP.
+4. Cloud-init on each VM installs `podman`, `postgresql-16`, and runs the OberCloud container (`ghcr.io/.../obercloud:latest`) with `--restart unless-stopped` so it survives reboots.
+5. CLI polls `http://<primary-ip>/health` until the control plane responds.
+6. CLI registers the new server as the `<cluster-name>` context in `~/.config/obercloud/config.toml` and makes it active.
+7. Prints the URL and admin password.
+
+### How does the control plane authenticate against Hetzner for future provisioning?
+
+Cloud-init writes the Hetzner token to `/etc/obercloud/env` on the VM as `OBERCLOUD_BOOTSTRAP_HETZNER_TOKEN`. **This is a bootstrap-only credential** that lets the control plane do a first reconcile against Hetzner before an admin POSTs a long-lived credential.
+
+The intended operational flow is:
+
+1. After `obercloud init` finishes, log in as the `system:owner`.
+2. POST to `/api/provider_credentials` with the Hetzner token (the API encrypts it at rest with AES-256-GCM using `CREDENTIAL_ENCRYPTION_KEY`).
+3. Remove `OBERCLOUD_BOOTSTRAP_HETZNER_TOKEN` from `/etc/obercloud/env` and rebuild the container.
+
+The bootstrap-token UX is rough in P0 — automating step 2 is on the P1 list.
+
+### Why Podman, not Docker?
+
+Podman is rootless by default, daemonless, and a near-drop-in replacement for `docker run`. Less attack surface for a cloud-facing control plane, and one fewer system service to keep running.
+
+### Tear down
 
 ```bash
-obercloud destroy
+obercloud destroy --name acme-prod    # or just `obercloud destroy` to use the active context
 ```
+
+This runs `tofu destroy` against the persisted state in `~/.config/obercloud/<name>/`.
 
 ---
 
