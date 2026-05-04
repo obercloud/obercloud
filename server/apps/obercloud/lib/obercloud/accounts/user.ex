@@ -36,6 +36,10 @@ defmodule OberCloud.Accounts.User do
   end
 
   authentication do
+    # Use the JWT's jti claim as the session identifier; the token
+    # resource persists it so revoked tokens are caught at validation.
+    session_identifier :jti
+
     tokens do
       enabled? true
       token_resource OberCloud.Accounts.Token

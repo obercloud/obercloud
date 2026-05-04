@@ -1,9 +1,13 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for the OberCloud server (Phoenix umbrella).
 
-ARG ELIXIR_VERSION=1.19.2
-ARG OTP_VERSION=28.1.1
-ARG DEBIAN_VERSION=bookworm-20241016-slim
+# These resolve to hexpm/elixir:<ELIXIR>-erlang-<OTP>-debian-<DEBIAN>-slim and
+# debian:<DEBIAN>. hexpm publishes minor-version-only tags (e.g. 1.19, 28.1)
+# rather than full patch versions — the patch dot-fixes are tracked by the
+# Debian snapshot date in DEBIAN_VERSION.
+ARG ELIXIR_VERSION=1.19
+ARG OTP_VERSION=28.1
+ARG DEBIAN_VERSION=bookworm-20251117-slim
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"

@@ -8,8 +8,6 @@ defmodule OberCloudWeb.LiveUserAuth do
   to populate `socket.assigns.current_user` from the session.
   """
 
-  import Phoenix.Component
-
   def on_mount(:live_user_required, _params, _session, socket) do
     if socket.assigns[:current_user],
       do: {:cont, socket},
