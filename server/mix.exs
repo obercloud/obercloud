@@ -9,7 +9,19 @@ defmodule OberCloud.Umbrella.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+      releases: releases(),
       listeners: [Phoenix.CodeReloader]
+    ]
+  end
+
+  defp releases do
+    [
+      obercloud_web: [
+        applications: [
+          obercloud: :permanent,
+          obercloud_web: :permanent
+        ]
+      ]
     ]
   end
 
