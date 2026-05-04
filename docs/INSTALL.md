@@ -34,7 +34,10 @@ If you're just kicking the tires, do [Local development](#1-local-development) f
 | Erlang/OTP | **28+** | Elixir runtime |
 | PostgreSQL | **16+** | Primary data store |
 | Rust | **stable (1.80+)** | CLI |
+| `just` | **1.50+** | Task runner — every dev command goes through it |
 | OpenTofu *(optional)* | **1.8+** | Required only for `obercloud init` against a real provider; not needed for local dev |
+
+If you don't have `just`: `cargo install just`, `brew install just`, or `mise use just@latest` (the repo's `.tool-versions` already pins it for mise users).
 
 The repo includes a `.tool-versions` file pinning Elixir and Erlang. If you use [`mise`](https://mise.jdx.dev/) or [`asdf`](https://asdf-vm.com/), the right versions are picked up automatically:
 
@@ -57,20 +60,24 @@ git clone https://github.com/obercloud/obercloud.git
 cd obercloud
 ```
 
+List every available task:
+
+```bash
+just            # equivalent to `just --list`
+```
+
 Install dependencies, create the database, and run migrations:
 
 ```bash
-./run_mix_in_server deps.get
-./run_mix_in_server ecto.create
-./run_mix_in_server ecto.migrate
+just setup
 ```
 
-The `./run_mix_in_server` helper just does `cd server && mix "$@"`. If you'd rather not use it, run the equivalent commands inside the `server/` directory.
+This is shorthand for `just deps && just db-setup` — it fetches Elixir + Rust deps and creates+migrates the dev database.
 
 ### Run the server
 
 ```bash
-./run_mix_in_server phx.server
+just server
 ```
 
 The server boots on **<http://localhost:4000>**.
@@ -85,8 +92,7 @@ Stop with `Ctrl+C` twice.
 ### Build the CLI
 
 ```bash
-cd cli
-cargo build --release
+just cargo-release
 ```
 
 The binary lands at `cli/target/release/obercloud`. Either copy it onto your `PATH` or use it directly:
@@ -94,6 +100,15 @@ The binary lands at `cli/target/release/obercloud`. Either copy it onto your `PA
 ```bash
 ./cli/target/release/obercloud --help
 ```
+
+For day-to-day dev you can also drive the CLI without building it explicitly:
+
+```bash
+just cli orgs list
+just cli context add local http://localhost:4000
+```
+
+(`just cli ...` runs the obercloud CLI in debug mode via `cargo run`.)
 
 Common subcommands:
 
@@ -167,7 +182,7 @@ The web UI lets you sign up via <http://localhost:4000/register>, but in P0 the 
    Run it:
 
    ```bash
-   ./run_mix_in_server run bootstrap.exs
+   just seed
    ```
 
    Copy the `obk_...` API key it prints. **You will not be able to see it again** (only its bcrypt hash is stored).
@@ -175,8 +190,8 @@ The web UI lets you sign up via <http://localhost:4000/register>, but in P0 the 
    Re-running the script will fail on the user/org creation because of the unique-email and unique-slug constraints. To start over:
 
    ```bash
-   ./run_mix_in_server ecto.reset    # drops + recreates + migrates the dev DB
-   ./run_mix_in_server run bootstrap.exs
+   just db-reset    # drops + recreates + migrates the dev DB
+   just seed
    ```
 
 3. **Use it from the CLI:**
@@ -204,8 +219,9 @@ The web UI lets you sign up via <http://localhost:4000/register>, but in P0 the 
 ### Running the test suites
 
 ```bash
-./run_mix_in_server test         # Elixir/Phoenix tests (47 tests in P0)
-cd cli && cargo test             # Rust CLI tests
+just test            # both Elixir + Rust
+just mix-test        # just Elixir
+just cargo-test      # just Rust
 ```
 
 Both should be green on a fresh clone.
@@ -359,7 +375,7 @@ sudo -u postgres createuser -s postgres
 Compile errors in the AshAuthentication.Phoenix routes can manifest at runtime. Recompile with warnings:
 
 ```bash
-./run_mix_in_server compile --force --warnings-as-errors
+cd server && mix compile --force --warnings-as-errors
 ```
 
 ### CLI returns "no active context"
@@ -393,7 +409,7 @@ Install OpenTofu: <https://opentofu.org/docs/intro/install/>. The bootstrap expl
 Run pending migrations first:
 
 ```bash
-./run_mix_in_server ecto.migrate
+just db-migrate
 ```
 
 ---

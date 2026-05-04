@@ -14,19 +14,24 @@ OberCloud lets indie developers and small companies self-host a Fly.io / Heroku-
 
 ## Quickstart
 
+OberCloud uses [`just`](https://just.systems/) as a command runner — `just` lists every recipe.
+
 ```bash
 git clone https://github.com/obercloud/obercloud.git
 cd obercloud
 
-./run_mix_in_server deps.get
-./run_mix_in_server ecto.create
-./run_mix_in_server ecto.migrate
-./run_mix_in_server phx.server
-# server is now at http://localhost:4000
-
-cd cli && cargo build --release
-./target/release/obercloud --help
+just setup        # fetch deps + create DB + migrate
+just server       # boots Phoenix at http://localhost:4000
 ```
+
+In another terminal:
+
+```bash
+just cargo-release         # builds the CLI
+./cli/target/release/obercloud --help
+```
+
+If you don't have `just` yet: `cargo install just` / `brew install just` / `mise use just@latest`.
 
 Full walkthrough including production bootstrap on Hetzner: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
@@ -56,7 +61,7 @@ Full walkthrough including production bootstrap on Hetzner: **[docs/INSTALL.md](
 - `docs/INSTALL.md` — install + getting started
 - `docs/superpowers/specs/` — design specs
 - `docs/superpowers/plans/` — implementation plans
-- `run_mix_in_server` — small wrapper: `cd server && mix "$@"`
+- `justfile` — task runner; `just` lists every recipe
 
 ## License
 

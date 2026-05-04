@@ -21,39 +21,28 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      MIX_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost/obercloud_test
     steps:
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         with:
           elixir-version: "1.19"
           otp-version: "28"
-      - run: mix deps.get
-        working-directory: server
-      - run: mix compile --warnings-as-errors
-        working-directory: server
-        env:
-          MIX_ENV: test
-      - run: mix ecto.create && mix ecto.migrate
-        working-directory: server
-        env:
-          MIX_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost/obercloud_test
-      - run: mix test
-        working-directory: server
-        env:
-          MIX_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost/obercloud_test
+      - uses: extractions/setup-just@v2
+      - run: just mix-deps
+      - run: cd server && mix compile --warnings-as-errors
+      - run: just db-create db-migrate
+      - run: just mix-test
 
   rust:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo fmt --check
-        working-directory: cli
-      - run: cargo clippy --all-targets -- -D warnings
-        working-directory: cli
-      - run: cargo test
-        working-directory: cli
-      - run: cargo build --release
-        working-directory: cli
+      - uses: extractions/setup-just@v2
+      - run: cd cli && cargo fmt --check
+      - run: just cargo-clippy
+      - run: just cargo-test
+      - run: just cargo-release
