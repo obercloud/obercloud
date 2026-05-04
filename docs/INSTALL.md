@@ -53,7 +53,7 @@ The default config expects `postgres` / `postgres` on `localhost:5432`. If that 
 ### Clone and bootstrap the repo
 
 ```bash
-git clone https://github.com/<your-org>/obercloud.git
+git clone https://github.com/obercloud/obercloud.git
 cd obercloud
 ```
 
@@ -125,7 +125,7 @@ The web UI lets you sign up via <http://localhost:4000/register>, but in P0 the 
    {:ok, user} =
      OberCloud.Accounts.User
      |> Ash.Changeset.for_create(:register_with_password, %{
-       email: "admin@local",
+       email: "admin@obercloud.local",
        name: "Admin",
        password: "changeme1234",
        password_confirmation: "changeme1234"
@@ -156,7 +156,7 @@ The web UI lets you sign up via <http://localhost:4000/register>, but in P0 the 
    IO.puts("""
 
    ============================================
-     User:    admin@local / changeme1234
+     User:    admin@obercloud.local / changeme1234
      Org id:  #{org.id}
      API key: #{pt}
    ============================================
@@ -219,9 +219,9 @@ Both should be green on a fresh clone.
 ⚠️ **Pre-alpha.** The `obercloud init` flow is implemented and will:
 - Provision Hetzner VM(s) via OpenTofu
 - Install PostgreSQL + Podman via cloud-init
-- Start the OberCloud container from `ghcr.io/<owner>/obercloud:latest`
+- Start the OberCloud container from `ghcr.io/obercloud/obercloud:latest`
 
-The official `ghcr.io/obercloud/obercloud:latest` image is published by the **`.github/workflows/release.yml`** workflow on every push to `main`. If you've forked the repo and the image hasn't been built in your fork yet, `obercloud init` will provision VMs but the cloud-init container pull will fail. Push to `main` (or run the workflow manually) before bootstrapping.
+The official `ghcr.io/obercloud/obercloud:latest` image is published by the **`.github/workflows/release.yml`** workflow on every push to `main` and on every `v*` tag. The first push to `main` after the workflow lands will publish the initial image; until then, `obercloud init` will provision VMs but the cloud-init container pull will fail.
 
 ### Where does what run, and where does state live?
 
@@ -402,4 +402,4 @@ Run pending migrations first:
 
 - Read the **[design spec](superpowers/specs/2026-04-30-obercloud-p0-control-plane-design.md)** for the architecture overview
 - Read the **[implementation plan](superpowers/plans/2026-04-30-obercloud-p0-control-plane.md)** for the task-by-task breakdown
-- File issues at <https://github.com/your-org/obercloud/issues>
+- File issues at <https://github.com/obercloud/obercloud/issues>

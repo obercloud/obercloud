@@ -1,18 +1,22 @@
-# OberCloudWeb
+# obercloud_web
 
-To start your Phoenix server:
+The HTTP-facing umbrella app: Phoenix endpoint, LiveView pages, and the
+AshJsonApi REST router. Pairs with the `obercloud` core app.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server`
+For end-user installation and usage, see the **[top-level INSTALL.md](../../../docs/INSTALL.md)**.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+To run from this directory during development:
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+```bash
+mix setup
+mix phx.server
+```
 
-## Learn more
+Then visit <http://localhost:4000>.
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+## Tech
+
+- [Phoenix](https://hexdocs.pm/phoenix/)
+- [Phoenix LiveView](https://hexdocs.pm/phoenix_live_view/)
+- [AshJsonApi](https://hexdocs.pm/ash_json_api/) for the REST API
+- [AshAuthentication.Phoenix](https://hexdocs.pm/ash_authentication_phoenix/) for sign-in/sign-out

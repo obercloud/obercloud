@@ -1,7 +1,7 @@
 {:ok, user} =
   OberCloud.Accounts.User
   |> Ash.Changeset.for_create(:register_with_password, %{
-    email: "admin@local",
+    email: "admin@obercloud.local",
     name: "Admin",
     password: "changeme1234",
     password_confirmation: "changeme1234"
@@ -32,7 +32,7 @@
 IO.puts("""
 
 ============================================
-  User:    admin@local / changeme1234
+  User:    admin@obercloud.local / changeme1234
   Org id:  #{org.id}
   API key: #{pt}
 ============================================

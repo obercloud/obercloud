@@ -15,7 +15,7 @@ OberCloud lets indie developers and small companies self-host a Fly.io / Heroku-
 ## Quickstart
 
 ```bash
-git clone https://github.com/<your-org>/obercloud.git
+git clone https://github.com/obercloud/obercloud.git
 cd obercloud
 
 ./run_mix_in_server deps.get

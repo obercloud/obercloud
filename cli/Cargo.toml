@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 license = "AGPL-3.0"
 description = "OberCloud control plane CLI"
+repository = "https://github.com/obercloud/obercloud"
+homepage = "https://github.com/obercloud/obercloud"
 
 [[bin]]
 name = "obercloud"
