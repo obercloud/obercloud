@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use obercloud::commands;
-use obercloud::Result;
 
 #[derive(Parser)]
 #[command(name = "obercloud", version, about = "OberCloud control plane CLI")]
@@ -34,9 +33,9 @@ enum Command {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     let cli = Cli::parse();
-    match cli.command {
+    let result = match cli.command {
         Command::Init(a) => commands::bootstrap::init::run(a).await,
         Command::Destroy(a) => commands::bootstrap::destroy::run(a).await,
         Command::Upgrade(a) => commands::bootstrap::upgrade::run(a).await,
@@ -47,5 +46,9 @@ async fn main() -> Result<()> {
         Command::Projects(c) => commands::projects::run(c).await,
         Command::Nodes(c) => commands::nodes::run(c).await,
         Command::Apikeys(c) => commands::apikeys::run(c).await,
+    };
+    if let Err(e) = result {
+        eprintln!("error: {e}");
+        std::process::exit(1);
     }
 }

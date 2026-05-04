@@ -5,7 +5,7 @@ use crate::{
 };
 use clap::{Args as ClapArgs, ValueEnum};
 use dialoguer::Password;
-use std::fs;
+use std::{fs, path::PathBuf};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Provider {
@@ -92,6 +92,12 @@ pub struct Args {
     /// VM hostname prefix and as the CLI context name.
     #[arg(long, default_value = "obercloud")]
     pub name: String,
+
+    /// Path to an SSH public key file to upload. When omitted, the CLI
+    /// searches ~/.ssh/id_ed25519.pub, ~/.ssh/id_ed25519_sk.pub,
+    /// ~/.ssh/id_ecdsa.pub, and ~/.ssh/id_rsa.pub in that order.
+    #[arg(long, value_name = "PATH")]
+    pub ssh_pubkey: Option<PathBuf>,
 }
 
 pub async fn run(args: Args) -> Result<()> {
@@ -135,7 +141,7 @@ pub async fn run(args: Args) -> Result<()> {
     fs::write(workdir.path().join("main.tf"), template)?;
     fs::write(workdir.path().join("cloud_init.yaml"), cloud_init)?;
 
-    let ssh_pubkey = read_ssh_pubkey()?;
+    let ssh_pubkey = read_ssh_pubkey(args.ssh_pubkey.as_deref())?;
     fs::write(
         workdir.path().join("terraform.tfvars"),
         format!(
@@ -206,11 +212,48 @@ pub async fn run(args: Args) -> Result<()> {
     Ok(())
 }
 
-fn read_ssh_pubkey() -> Result<String> {
+fn read_ssh_pubkey(explicit: Option<&std::path::Path>) -> Result<String> {
+    if let Some(path) = explicit {
+        return fs::read_to_string(path).map_err(|e| {
+            CliError::Validation(format!(
+                "cannot read SSH public key at {}: {}",
+                path.display(),
+                e
+            ))
+        });
+    }
+
     let home = dirs::home_dir().unwrap();
-    fs::read_to_string(home.join(".ssh/id_ed25519.pub"))
-        .or_else(|_| fs::read_to_string(home.join(".ssh/id_rsa.pub")))
-        .map_err(CliError::from)
+    let candidates = [
+        home.join(".ssh/id_ed25519.pub"),
+        home.join(".ssh/id_ed25519_sk.pub"),
+        home.join(".ssh/id_ecdsa.pub"),
+        home.join(".ssh/id_rsa.pub"),
+    ];
+
+    for path in &candidates {
+        match fs::read_to_string(path) {
+            Ok(key) => return Ok(key),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => {
+                return Err(CliError::Validation(format!(
+                    "cannot read SSH public key at {}: {}",
+                    path.display(),
+                    e
+                )))
+            }
+        }
+    }
+
+    let paths = candidates
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    Err(CliError::Validation(format!(
+        "no SSH public key found — tried: {paths}\n\
+         generate one with `ssh-keygen -t ed25519` or pass --ssh-pubkey <PATH>"
+    )))
 }
 
 async fn wait_for_health(url: &str) -> Result<()> {
