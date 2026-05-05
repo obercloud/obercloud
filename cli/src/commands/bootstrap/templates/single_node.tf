@@ -53,7 +53,7 @@ resource "hcloud_server" "control_plane" {
   })
 }
 
-output "url" { value = "http://${hcloud_server.control_plane.ipv4_address}" }
+output "url" { value = "http://${hcloud_server.control_plane.ipv4_address}:4000" }
 output "ip" { value = hcloud_server.control_plane.ipv4_address }
 output "admin_email" { value = "admin@obercloud.local" }
 output "admin_password" {

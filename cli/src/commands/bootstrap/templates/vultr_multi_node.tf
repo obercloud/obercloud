@@ -95,7 +95,7 @@ resource "vultr_instance" "standby" {
 }
 
 output "url" {
-  value = "http://${vultr_instance.primary.main_ip}"
+  value = "http://${vultr_instance.primary.main_ip}:4000"
 }
 output "all_ips" {
   value = concat([vultr_instance.primary.main_ip],

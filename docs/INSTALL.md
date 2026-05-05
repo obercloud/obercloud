@@ -303,7 +303,7 @@ obercloud init \
    - **Multi-node (Vultr):** three VMs + a Vultr VPC2 (`10.42.1.0/24`); the primary is provisioned first, standbys reference its public IP via cloud-init for PG streaming replication. (Vultr's vpc2 doesn't expose deterministic per-instance private IPs at create time the way Hetzner does — replication is still TLS-encrypted by Postgres, just routes via public network for P0.)
    - **Multi-node (Hetzner):** three servers + a Hetzner private network (`10.42.0.0/16`) with deterministic per-node private IPs so PG replication, libcluster, and Horde traffic all stay internal.
 4. Cloud-init on each VM installs `podman`, `postgresql-16`, and runs the OberCloud container (`ghcr.io/obercloud/obercloud:latest`) with `--restart unless-stopped` so it survives reboots.
-5. CLI polls `http://<primary-ip>/health` until the control plane responds.
+5. CLI polls `http://<primary-ip>:4000/health` until the control plane responds.
 6. CLI registers the new server as the `<cluster-name>` context in `~/.config/obercloud/config.toml` and makes it active.
 7. Prints the URL and admin password.
 

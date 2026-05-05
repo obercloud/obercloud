@@ -55,7 +55,7 @@ resource "vultr_instance" "control_plane" {
   })
 }
 
-output "url" { value = "http://${vultr_instance.control_plane.main_ip}" }
+output "url" { value = "http://${vultr_instance.control_plane.main_ip}:4000" }
 output "ip" { value = vultr_instance.control_plane.main_ip }
 output "admin_email" { value = "admin@obercloud.local" }
 output "admin_password" {

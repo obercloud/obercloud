@@ -82,7 +82,7 @@ resource "hcloud_server_network" "control_plane" {
 }
 
 output "url" {
-  value = "http://${hcloud_server.control_plane[0].ipv4_address}"
+  value = "http://${hcloud_server.control_plane[0].ipv4_address}:4000"
 }
 output "all_ips" {
   value = [for s in hcloud_server.control_plane : s.ipv4_address]
