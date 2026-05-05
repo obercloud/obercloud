@@ -168,6 +168,28 @@ pub async fn run(args: Args) -> Result<()> {
     output::info("running tofu apply");
     tofu::run(workdir.path(), &["apply", "-auto-approve", "-no-color"])?;
 
+    // Persist state immediately after apply so that an interrupted run leaves
+    // a usable terraform.tfstate on disk — allowing `obercloud destroy` to
+    // clean up the (now-billable) VM even if the health-check or cfg.save()
+    // steps below are never reached.
+    let cfg_dir = Config::path().parent().unwrap().join(&args.name);
+    fs::create_dir_all(&cfg_dir)?;
+    fs::write(cfg_dir.join("main.tf"), template)?;
+    fs::write(cfg_dir.join("cloud_init.yaml"), cloud_init)?;
+    fs::copy(
+        workdir.path().join("terraform.tfvars"),
+        cfg_dir.join("terraform.tfvars"),
+    )?;
+    let tfstate = workdir.path().join("terraform.tfstate");
+    if tfstate.exists() {
+        fs::copy(&tfstate, cfg_dir.join("terraform.tfstate"))?;
+    }
+    output::info(&format!(
+        "Tofu state persisted at {} — run `obercloud destroy --name {}` to tear down",
+        cfg_dir.display(),
+        args.name,
+    ));
+
     let out_json = tofu::run(workdir.path(), &["output", "-json"])?;
     let outputs: serde_json::Value =
         serde_json::from_str(&out_json).map_err(|e| CliError::Tofu(e.to_string()))?;
@@ -191,19 +213,6 @@ pub async fn run(args: Args) -> Result<()> {
     );
     cfg.active_context = Some(args.name.clone());
     cfg.save()?;
-
-    let cfg_dir = Config::path().parent().unwrap().join(&args.name);
-    fs::create_dir_all(&cfg_dir)?;
-    fs::write(cfg_dir.join("main.tf"), template)?;
-    fs::write(cfg_dir.join("cloud_init.yaml"), cloud_init)?;
-    fs::copy(
-        workdir.path().join("terraform.tfvars"),
-        cfg_dir.join("terraform.tfvars"),
-    )?;
-    let tfstate = workdir.path().join("terraform.tfstate");
-    if tfstate.exists() {
-        fs::copy(&tfstate, cfg_dir.join("terraform.tfstate"))?;
-    }
 
     output::success(&format!("OberCloud '{}' is running at {}", args.name, url));
     output::success(&format!("admin password: {}", admin_password));

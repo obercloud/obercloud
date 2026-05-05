@@ -331,6 +331,8 @@ obercloud destroy --name acme-prod    # or just `obercloud destroy` to use the a
 
 This runs `tofu destroy` against the persisted state in `~/.config/obercloud/<name>/`.
 
+If the state directory is missing (e.g. `init` was interrupted before the health check on an older CLI version), `obercloud destroy` will not be able to clean up automatically. In that case, log in to your provider's web console and manually delete any instances tagged `obercloud` and `<name>`: Vultr at <https://my.vultr.com/> (filter by tag) or Hetzner at <https://console.hetzner.cloud/> (filter by label). Current versions of the CLI persist state immediately after `tofu apply`, so this situation should no longer occur.
+
 ---
 
 ## 3. Configuration reference
