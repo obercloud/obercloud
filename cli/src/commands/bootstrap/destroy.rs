@@ -33,6 +33,9 @@ pub async fn run(args: Args) -> Result<()> {
         )));
     }
 
+    output::info(&format!("running tofu init for cluster '{}'", name));
+    tofu::run(&cfg_dir, &["init", "-no-color"])?;
+
     output::info(&format!("running tofu destroy on cluster '{}'", name));
     tofu::run(&cfg_dir, &["destroy", "-auto-approve", "-no-color"])?;
     output::success(&format!("control plane '{}' destroyed", name));

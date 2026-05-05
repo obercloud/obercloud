@@ -29,6 +29,9 @@ pub async fn run(args: Args) -> Result<()> {
         )));
     }
 
+    output::info(&format!("running tofu init for cluster '{}'", name));
+    tofu::run(&cfg_dir, &["init", "-no-color"])?;
+
     output::info(&format!(
         "upgrading cluster '{}' to obercloud:{}",
         name, args.version
