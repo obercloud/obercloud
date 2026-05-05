@@ -19,9 +19,6 @@ config :obercloud, :credential_encryption_key, credential_encryption_key
 # any compile-time configuration in here, as it won't be applied.
 # The block below contains prod specific runtime configuration.
 
-config :obercloud_web, OberCloudWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
-
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -52,13 +49,21 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # P0: we serve plain HTTP on port 4000 — no TLS terminator exists yet.
+  # When a load balancer or letsencrypt sidecar lands (P1+), flip
+  # scheme back to "https" and re-enable force_ssl in prod.exs.
+  host = System.get_env("PHX_HOST") || "example.com"
+  port = String.to_integer(System.get_env("PORT") || "4000")
+
   config :obercloud_web, OberCloudWeb.Endpoint,
     server: true,
+    url: [host: host, port: port, scheme: "http"],
     http: [
-      # Bind on all IPv4 interfaces (0.0.0.0:4000).
+      # Bind on all IPv4 interfaces (0.0.0.0:PORT).
       # Using the IPv4 wildcard instead of the IPv6 one keeps things simple
       # on hosts where IPv6 dual-stack is not reliably configured.
-      ip: {0, 0, 0, 0}
+      ip: {0, 0, 0, 0},
+      port: port
     ],
     secret_key_base: secret_key_base
 

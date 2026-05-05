@@ -9,17 +9,19 @@ config :obercloud_web, OberCloudWeb.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
-# Force using SSL in production. This also sets the "strict-security-transport" header,
-# known as HSTS. If you have a health check endpoint, you may want to exclude it below.
-# Note `:force_ssl` is required to be set at compile-time.
-config :obercloud_web, OberCloudWeb.Endpoint,
-  force_ssl: [
-    rewrite_on: [:x_forwarded_proto],
-    exclude: [
-      # paths: ["/health"],
-      hosts: ["localhost", "127.0.0.1"]
-    ]
-  ]
+# force_ssl is intentionally disabled in P0: the control plane serves plain HTTP
+# on port 4000 with no TLS terminator in front of it.  When a load balancer or
+# letsencrypt sidecar lands (P1+), re-enable force_ssl here and flip
+# `scheme: "http"` → `"https"` in runtime.exs.
+#
+# config :obercloud_web, OberCloudWeb.Endpoint,
+#   force_ssl: [
+#     rewrite_on: [:x_forwarded_proto],
+#     exclude: [
+#       # paths: ["/health"],
+#       hosts: ["localhost", "127.0.0.1"]
+#     ]
+#   ]
 
 # Configure Swoosh API Client
 config :swoosh, :api_client, Swoosh.ApiClient.Req
