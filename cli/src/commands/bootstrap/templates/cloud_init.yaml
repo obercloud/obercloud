@@ -49,6 +49,12 @@ runcmd:
     EOF
     chmod 600 /etc/obercloud/env
 
+  # Open port 4000 in the Linux firewall so external traffic can reach
+  # the OberCloud control plane.  ufw is active by default on Ubuntu 22.04
+  # and its default INPUT policy is DROP, so without this rule the app
+  # would be reachable from localhost but not from the public internet.
+  - ufw allow 4000/tcp
+
   # Pull the image first so any auth/registry failure surfaces in the
   # cloud-init log instead of getting buried under a podman run error.
   # If the package is private on ghcr.io/obercloud/obercloud, this will

@@ -55,9 +55,10 @@ if config_env() == :prod do
   config :obercloud_web, OberCloudWeb.Endpoint,
     server: true,
     http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+      # Bind on all IPv4 interfaces (0.0.0.0:4000).
+      # Using the IPv4 wildcard instead of the IPv6 one keeps things simple
+      # on hosts where IPv6 dual-stack is not reliably configured.
+      ip: {0, 0, 0, 0}
     ],
     secret_key_base: secret_key_base
 
