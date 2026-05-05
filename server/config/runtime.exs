@@ -53,6 +53,7 @@ if config_env() == :prod do
       """
 
   config :obercloud_web, OberCloudWeb.Endpoint,
+    server: true,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -62,13 +63,12 @@ if config_env() == :prod do
 
   # ## Using releases
   #
-  # If you are doing OTP releases, you need to instruct Phoenix
-  # to start each relevant endpoint:
-  #
-  #     config :obercloud_web, OberCloudWeb.Endpoint, server: true
-  #
-  # Then you can assemble a release by calling `mix release`.
-  # See `mix help release` for more information.
+  # server: true above is required so the HTTP listener actually starts when
+  # running as an OTP release.  Without it Phoenix logs:
+  #   "Configuration :server was not enabled for OberCloudWeb.Endpoint,
+  #    http/https services won't start"
+  # even when PHX_SERVER=true is present in the environment (the env-var is
+  # written by cloud-init but was never read here).  See mix help release.
 
   # ## SSL Support
   #

@@ -7,7 +7,7 @@
 package_update: true
 packages:
   - podman
-  - postgresql-16
+  - postgresql
   - postgresql-contrib
   - curl
 
@@ -55,6 +55,18 @@ runcmd:
   # fail with HTTP 401 — make the package public, or add a podman login
   # step before this runcmd entry.
   - podman pull ghcr.io/obercloud/obercloud:latest
+
+  # Run Ecto migrations before starting the server so all tables (including
+  # Oban's oban_peers / oban_jobs) exist before the supervision tree starts.
+  # Without this the Oban.Peer GenServer crashes on every boot because
+  # "relation public.oban_peers does not exist", which kills the obercloud
+  # application and puts the container into an endless restart loop.
+  - |
+    podman run --rm \
+      --network host \
+      --env-file /etc/obercloud/env \
+      ghcr.io/obercloud/obercloud:latest \
+      bin/obercloud_web eval "OberCloud.Release.migrate()"
 
   # Boot the control plane. --network host so the container can talk to
   # postgres on 127.0.0.1 and bind 0.0.0.0:4000 directly.
